@@ -1,6 +1,8 @@
 #include "main.h"
 using namespace pros;
 
+bool steering_lockout;
+
 Controller master(E_CONTROLLER_MASTER);
 
 Motor left_front(1,E_MOTOR_GEAR_GREEN);
@@ -127,7 +129,23 @@ void autonomous() {}
  */
 void opcontrol() {
 	while (true) {
-		left_drive = master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y) - master.get_analog(E_CONTROLLER_ANALOG_LEFT_X);
-		right_drive = master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y) + master.get_analog(E_CONTROLLER_ANALOG_LEFT_X);
+		std::cout<<left_front.get_actual_velocity()<<"<LF";
+		std::cout<<left_rear.get_actual_velocity()<<"<LR";
+		std::cout<<right_front.get_actual_velocity()<<"<RF";
+		std::cout<<right_rear.get_actual_velocity()<<"<RR";
+
+		std::cout<<std::endl;
+
+		if (master.get_digital(E_CONTROLLER_DIGITAL_A)){
+			if (steering_lockout) {
+				steering_lockout=false;
+			}
+			else {
+				steering_lockout=true;
+			}
+		}
+
+		left_drive = master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y) - (steering_lockout ? 0 : master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+		right_drive = master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y) + (steering_lockout ? 0 : master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
 	}
 }
