@@ -1,19 +1,22 @@
 #include "main.h"
+#include "math.h"
 using namespace pros;
 
 bool steering_lockout;
 
 Controller master(E_CONTROLLER_MASTER);
 
-Motor left_front(1,E_MOTOR_GEAR_GREEN);
-Motor left_rear(9,E_MOTOR_GEAR_GREEN);
+Motor left_front(1,E_MOTOR_GEAR_GREEN,1);
+Motor left_rear(9,E_MOTOR_GEAR_GREEN,1);
 Motor_Group left_drive({left_front,left_rear});
 
-Motor right_front(2,E_MOTOR_GEAR_GREEN,1);
-Motor right_rear(10,E_MOTOR_GEAR_GREEN,1);
+Motor right_front(2,E_MOTOR_GEAR_GREEN);
+Motor right_rear(10,E_MOTOR_GEAR_GREEN);
 Motor_Group right_drive({right_front,right_rear});
 
 Motor intake(3,E_MOTOR_GEAR_GREEN);
+Motor flywheel(8,E_MOTOR_GEAR_BLUE);
+Motor roller(4,E_MOTOR_GEAR_GREEN);
 
 Imu inertial(9);
 
@@ -112,8 +115,10 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
-
+void autonomous() {
+	
+}
+double cubeRtCtrl;
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -129,23 +134,20 @@ void autonomous() {}
  */
 void opcontrol() {
 	while (true) {
-		std::cout<<left_front.get_actual_velocity()<<"<LF";
-		std::cout<<left_rear.get_actual_velocity()<<"<LR";
-		std::cout<<right_front.get_actual_velocity()<<"<RF";
-		std::cout<<right_rear.get_actual_velocity()<<"<RR";
-
-		std::cout<<std::endl;
 
 		if (master.get_digital(E_CONTROLLER_DIGITAL_A)){
-			if (steering_lockout) {
+				if (steering_lockout) {
 				steering_lockout=false;
 			}
 			else {
 				steering_lockout=true;
 			}
 		}
-
-		left_drive = master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y) - (steering_lockout ? 0 : master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
-		right_drive = master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y) + (steering_lockout ? 0 : master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+		// Our Curve Function
+		cubeRtCtrl= (master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y))*(cbrt(abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)) - 63.5) + 3.989556)*25.065445);
+		left_drive = cubeRtCtrl + (steering_lockout ? 0 : master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+		right_drive = cubeRtCtrl - (steering_lockout ? 0 : master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+		flywheel = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_Y);
+		roller = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_X);
 	}
 }
