@@ -2,7 +2,10 @@
 #include "math.h"
 using namespace pros;
 
-bool steering_lockout;
+// Our Left Y-Axis Curve Function. We use a define because it saves us both space in the source code, as well as RAM at runtime.
+#define CUBERTCTRL_LY (master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y))*(cbrt(abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)) - 63.5) + 3.989556)*25.065445)
+// Our Left X-Axis Curve Function. We use a define because it saves us both space in the source code, as well as RAM at runtime.
+#define QUADRCTRL_LX (master.get_analog(E_CONTROLLER_ANALOG_LEFT_X)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_X))*(pow(master.get_analog(E_CONTROLLER_ANALOG_LEFT_X),2)/80.645))
 
 Controller master(E_CONTROLLER_MASTER);
 
@@ -118,7 +121,7 @@ void competition_initialize() {}
 void autonomous() {
 	
 }
-double cubeRtCtrl;
+
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -134,19 +137,8 @@ double cubeRtCtrl;
  */
 void opcontrol() {
 	while (true) {
-
-		if (master.get_digital(E_CONTROLLER_DIGITAL_A)){
-				if (steering_lockout) {
-				steering_lockout=false;
-			}
-			else {
-				steering_lockout=true;
-			}
-		}
-		// Our Curve Function
-		cubeRtCtrl= (master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y))*(cbrt(abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)) - 63.5) + 3.989556)*25.065445);
-		left_drive = cubeRtCtrl + (steering_lockout ? 0 : master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
-		right_drive = cubeRtCtrl - (steering_lockout ? 0 : master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+		left_drive = CUBERTCTRL_LY + QUADRCTRL_LX;
+		right_drive = CUBERTCTRL_LY - QUADRCTRL_LX;
 		flywheel = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_Y);
 		roller = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_X);
 	}
