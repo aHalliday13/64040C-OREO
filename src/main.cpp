@@ -3,24 +3,41 @@
 using namespace pros;
 
 // Our Left Y-Axis Curve Function. We use a define because it saves us both space in the source code, as well as RAM at runtime.
-#define CUBERTCTRL_LY (master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y))*(cbrt(abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)) - 63.5) + 3.989556)*25.065445)
-// Our Left X-Axis Curve Function. We use a define because it saves us both space in the source code, as well as RAM at runtime.
-#define QUADRCTRL_LX (master.get_analog(E_CONTROLLER_ANALOG_LEFT_X)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_X))*(pow(master.get_analog(E_CONTROLLER_ANALOG_LEFT_X),2)/80.645))
+#define CUBERTCTRL_LY (master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y))*(cbrt(abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)) - 63.5) + 3.989556)*15.9148)
+// Driver control inversion, flips the front and back of the robot to make driving easier.
+bool driveInv=true;
 
+// Driver's Controller
 Controller master(E_CONTROLLER_MASTER);
 
 Motor left_front(1,E_MOTOR_GEAR_GREEN,1);
 Motor left_rear(9,E_MOTOR_GEAR_GREEN,1);
+// Motor group for the left side of the robot (Where the flywheel represents the front of the robot)
 Motor_Group left_drive({left_front,left_rear});
 
 Motor right_front(2,E_MOTOR_GEAR_GREEN);
 Motor right_rear(10,E_MOTOR_GEAR_GREEN);
+// Motor group for the right side of the robot (Where the flywheel represents the front of the robot)
 Motor_Group right_drive({right_front,right_rear});
 
-Motor intake(3,E_MOTOR_GEAR_GREEN);
-Motor flywheel(8,E_MOTOR_GEAR_BLUE);
-Motor roller(4,E_MOTOR_GEAR_GREEN);
+Motor flywheel1(8,E_MOTOR_GEAR_BLUE,true);
+Motor flywheel2(7,E_MOTOR_GEAR_BLUE);
+// Both flywheel motors in a motor group
+Motor_Group flywheel({flywheel1,flywheel2});
 
+Motor intake(3,E_MOTOR_GEAR_GREEN,true);
+Motor roller(4,E_MOTOR_GEAR_GREEN);
+// Both intake motors
+Motor_Group rollIntChain({intake,roller});
+
+// Optical sensor pointing at the roller (When the robot is on a roller)
+Optical rollerOp(5);
+//Hues: 221-240 for blue, 355-10 for red
+
+// Double acting pneumatic valve for sending discs into the flywheel
+ADIPort indexer(1,E_ADI_DIGITAL_OUT);
+
+// Inertial sensor on the center of rotation
 Imu inertial(9);
 
 /**
@@ -29,7 +46,9 @@ Imu inertial(9);
  * Unless otherwise stated, function will wait until it finishes execution to continue on to the next action, so plan accordingly.
  * Velocity should be POSITIVE
  */
-void driveIN(float dist, float velocity, bool waitForComplete = true) {
+void driveIn(float dist, float velocity, bool waitForComplete = true) {
+	// 1000 units is 19 3/16" 
+	// 57.1172 units per inch
 	left_drive.move_relative(dist,velocity);
 	right_drive.move_relative(dist,velocity);
 
@@ -85,6 +104,8 @@ void initialize() {
 	right_front.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
 	left_rear.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
 	right_rear.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
+	flywheel1.set_brake_mode(E_MOTOR_BRAKE_COAST);
+	flywheel2.set_brake_mode(E_MOTOR_BRAKE_COAST);
 	inertial.reset();
 	inertial.tare();
 }
@@ -118,9 +139,7 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {
-	
-}
+void autonomous() {}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -137,9 +156,57 @@ void autonomous() {
  */
 void opcontrol() {
 	while (true) {
-		left_drive = CUBERTCTRL_LY + QUADRCTRL_LX;
-		right_drive = CUBERTCTRL_LY - QUADRCTRL_LX;
-		flywheel = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_Y);
-		roller = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_X);
+		// Drivetrain control functions
+		left_drive = (CUBERTCTRL_LY*(driveInv ? -1 : 1) + master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+		right_drive = (CUBERTCTRL_LY*(driveInv ? -1 : 1) - master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+
+		// Invert the drivetrain if the driver requests it
+		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_A)){
+			driveInv= !driveInv;
+		}
+
+		// Set the intake/ roller velocity
+		rollIntChain = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_Y);
+
+		// Set flywheel velocity
+		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_L1)){
+			// %100
+			if (flywheel1.get_target_velocity()==600) {
+				flywheel.brake();
+			}
+			else {
+				flywheel.move_velocity(600);
+			}
+		}
+		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_L2)){
+			// %85
+			if (flywheel1.get_target_velocity()==510) {
+				flywheel.brake();
+			}
+			else {
+				flywheel.move_velocity(510);
+			}
+		}
+		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R1)){
+			// %75
+			if (flywheel1.get_target_velocity()==450) {
+				flywheel.brake();
+			}
+			else {
+				flywheel.move_velocity(450);
+			}
+		}
+		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R2)){
+			// %65
+			if (flywheel1.get_target_velocity()==390) {
+				flywheel.brake();
+			}
+			else {
+				flywheel.move_velocity(390);
+			}
+		}
+
+		// Fire the indexer
+		indexer.set_value(master.get_digital(E_CONTROLLER_DIGITAL_X));
 	}
 }
