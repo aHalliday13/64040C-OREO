@@ -17,3 +17,6 @@ temp.errors
 
 # Some testing output files
 TestOutput/
+
+# Compression shenanigans
+.DS_Store
