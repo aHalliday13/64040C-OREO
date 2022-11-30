@@ -9,7 +9,6 @@ using namespace pros;
  * In this lab, theory and practice are combined: nothing works, and no one knows why.
  * - An absolute genius
  */
-
 /**
  * You turned the band saw into a spoon!
  * - What happens when you cut steel on the bandsaw
@@ -203,7 +202,7 @@ void blueLeftHalfWP() {
  * \author aHalliday13
  */
 void redLeftFullWP() {
-	flywheel.move_velocity(550);
+	flywheel.move_voltage(12000);
 	left_drive=-100;
 	right_drive=-100;
 	delay(500);
@@ -214,19 +213,15 @@ void redLeftFullWP() {
 	while (rollerOpL.get_hue() > 100){} // Rotate until red
 	rollIntChain.brake();
 
-	driveIn(3,25);
-	driveTurn(-7,10);
-    driveIn(3,10);
-	delay(500);
+	right_drive.move_relative(200,200);
 
-	while (flywheel1.get_actual_velocity()<550) {}
+	while (flywheel1.get_actual_velocity()<590) {}
 	indexer.set_value(true);
 	delay(1000);
-	flywheel.move_velocity(550);
 	indexer.set_value(false);
 	delay(500);
 
-	while (flywheel1.get_actual_velocity()<550) {}
+	while (flywheel1.get_actual_velocity()<590) {}
 	indexer.set_value(true);
 	delay(1000);
 	indexer.set_value(false);
@@ -234,19 +229,17 @@ void redLeftFullWP() {
 
 	flywheel.brake();
 
-	driveTurn(-112,10);
-	driveIn(-135,200);
-	delay(500);
-	driveTurn(30,30);
-	left_drive=-127;
-	right_drive=-127;
-	rollIntChain=70;
+	driveTurn(50,50);
+	driveIn(70,200);
 
-	while (rollerOpR.get_hue() < 100){} // Rotate until blue
-	while (rollerOpR.get_hue() > 100){} // Rotate until red
-	rollIntChain.brake();
+	left_drive=127;
+	right_drive=127;
+	delay(2000);
 	left_drive.brake();
 	right_drive.brake();
+
+	driveIn(-5,70);
+	driveTurn(-90,100);
 }
 
 /**
@@ -262,6 +255,7 @@ void blueLeftFullWP() {
 /**
  * Starts at the left half of the field, spins roller to red, shoots preloads, goes to
  * center of field, grabs discs on the way, and then fires them into the goal.
+ * \author aHalliday13
  */
 void redLeftHalfDiscs() {
 	driveIn(-2,100);
@@ -316,6 +310,7 @@ void redLeftHalfDiscs() {
 /**
  * Starts at the left half of the field, spins roller to blue, shoots preloads, goes to
  * center of field, grabs discs on the way, and then fires them into the goal.
+ * \author aHalliday13
  */
 void blueLeftHalfDiscs() {
 	driveIn(-2,100);
@@ -325,10 +320,7 @@ void blueLeftHalfDiscs() {
 	while (rollerOpL.get_hue() > 100){} // Rotate until red
 	rollIntChain.brake();
 
-	driveIn(3,25);
-	driveTurn(-7,10);
-    driveIn(3,10);
-	delay(500);
+	driveTurn(5,50);
 
 	while (flywheel1.get_actual_velocity()<550) {}
 	indexer.set_value(true);
@@ -379,7 +371,7 @@ void blueLeftHalfDiscs() {
  * from where it left off.
  */
 void autonomous() {
-	blueLeftHalfWP();
+	redLeftFullWP();
 }
 
 /**
