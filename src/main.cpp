@@ -18,6 +18,8 @@ using namespace pros;
 #define CUBERTCTRL_LY (master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y))*(cbrt(abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)) - 63.5) + 3.989556)*15.9148)
 // Driver control inversion, allows the driver to flip the front and back of the robot to make driving easier.
 bool driveInv=true;
+// Autonomous selection variable
+int routeSelection=0;
 
 /**
  * Drive a set number of inches forward. Uses the flywheel as the front of the robot.
@@ -109,7 +111,23 @@ void initialize() {
 	rollerOpL.set_led_pwm(100);
 	rollerOpR.set_led_pwm(100);
 
-
+	// Autonomous selection menu
+	while (true) {
+		master.clear_line(2);
+		master.print(0, 2, "Route %d", routeSelection);
+		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_LEFT)) {
+			routeSelection--;
+		}
+		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_RIGHT)) {
+			routeSelection++;
+		}
+		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)) {
+			break;
+		}
+	}
+	master.print(0, 2, "Confirmed");
+	delay(500);
+	master.clear_line(2);
 }
 
 /**
@@ -370,7 +388,7 @@ void redRightHalfDiscs() {
 	driveTurn(110,30);
 	rollIntChain=127;
 	driveIn(-40,100);
-	driveTurn(-90,30);
+	driveTurn(-85,30);
 	rollIntChain.brake();
 	flywheel.move_velocity(500);
 	while (flywheel1.get_actual_velocity()<500) {}
@@ -389,8 +407,8 @@ void redRightHalfDiscs() {
 	delay(500);
 	left_drive=-127;
 	rollIntChain=70;
-	while (rollerOpL.get_hue() < 100){} // Rotate until blue
-	while (rollerOpL.get_hue() > 100){} // Rotate until red
+	while (rollerOpR.get_hue() < 100){} // Rotate until blue
+	while (rollerOpR.get_hue() > 100){} // Rotate until red
 	rollIntChain.brake();
 }
 
@@ -431,8 +449,8 @@ void blueRightHalfDiscs() {
 	delay(500);
 	left_drive=-127;
 	rollIntChain=70;
-	while (rollerOpL.get_hue() > 100){} // Rotate until red
-	while (rollerOpL.get_hue() < 100){} // Rotate until blue
+	while (rollerOpR.get_hue() > 100){} // Rotate until red
+	while (rollerOpR.get_hue() < 100){} // Rotate until blue
 	rollIntChain.brake();
 }
 
@@ -448,6 +466,23 @@ void blueRightHalfDiscs() {
  * from where it left off.
  */
 void autonomous() {
+	if (routeSelection==0) {
+		redLeftHalfDiscs();
+	} else if (routeSelection==1) {
+		blueLeftHalfDiscs();
+	} else if (routeSelection==2) {
+		redRightHalfDiscs();
+	} else if (routeSelection==3) {
+		blueRightHalfDiscs();
+	} else if (routeSelection==4) {
+		redLeftHalfWP();
+	} else if (routeSelection==5) {
+		blueLeftHalfWP();
+	} else if (routeSelection==6) {
+		redLeftFullWP();
+	} else if (routeSelection==7) {
+		blueLeftFullWP();
+	}
 }
 
 /**
