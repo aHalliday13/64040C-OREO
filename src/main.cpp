@@ -353,6 +353,90 @@ void blueLeftHalfDiscs() {
 }
 
 /**
+ * Starts at the right half of the field, shoots preloads, spins roller to red.
+ * \author aHalliday13
+ */
+void redRightHalfDiscs() {
+	flywheel.move_velocity(550);
+	driveIn(14,30);
+	while (flywheel1.get_actual_velocity()<550) {}
+	for(int i=0;i<2;i++) {
+		indexer.set_value(true);
+		delay(1000);
+		indexer.set_value(false);
+		delay(500);
+	}
+	flywheel.brake();
+	driveTurn(110,30);
+	rollIntChain=127;
+	driveIn(-40,100);
+	driveTurn(-90,30);
+	rollIntChain.brake();
+	flywheel.move_velocity(500);
+	while (flywheel1.get_actual_velocity()<500) {}
+	for(int i=0;i<2;i++) {
+		indexer.set_value(true);
+		delay(1000);
+		indexer.set_value(false);
+		delay(500);
+	}
+	flywheel.brake();
+	rollIntChain=127;
+	driveTurn(-77,30);
+	driveIn(-60,150);
+	rollIntChain.brake();
+	right_drive=-127;
+	delay(500);
+	left_drive=-127;
+	rollIntChain=70;
+	while (rollerOpL.get_hue() < 100){} // Rotate until blue
+	while (rollerOpL.get_hue() > 100){} // Rotate until red
+	rollIntChain.brake();
+}
+
+/**
+ * Starts at the right half of the field, shoots preloads, spins roller to blue.
+ * \author aHalliday13
+ */
+void blueRightHalfDiscs() {
+	flywheel.move_velocity(550);
+	driveIn(14,30);
+	while (flywheel1.get_actual_velocity()<550) {}
+	for(int i=0;i<2;i++) {
+		indexer.set_value(true);
+		delay(1000);
+		indexer.set_value(false);
+		delay(500);
+	}
+	flywheel.brake();
+	driveTurn(110,30);
+	rollIntChain=127;
+	driveIn(-40,100);
+	driveTurn(-90,30);
+	rollIntChain.brake();
+	flywheel.move_velocity(500);
+	while (flywheel1.get_actual_velocity()<500) {}
+	for(int i=0;i<2;i++) {
+		indexer.set_value(true);
+		delay(1000);
+		indexer.set_value(false);
+		delay(500);
+	}
+	flywheel.brake();
+	rollIntChain=127;
+	driveTurn(-77,30);
+	driveIn(-60,150);
+	rollIntChain.brake();
+	right_drive=-127;
+	delay(500);
+	left_drive=-127;
+	rollIntChain=70;
+	while (rollerOpL.get_hue() > 100){} // Rotate until red
+	while (rollerOpL.get_hue() < 100){} // Rotate until blue
+	rollIntChain.brake();
+}
+
+/**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
  * the Field Management System or the VEX Competition Switch in the autonomous
@@ -364,7 +448,6 @@ void blueLeftHalfDiscs() {
  * from where it left off.
  */
 void autonomous() {
-	blueLeftHalfDiscs();
 }
 
 /**
