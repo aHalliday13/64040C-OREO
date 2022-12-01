@@ -50,6 +50,8 @@ void driveIn(float dist, float velocity, bool waitForComplete = true) {
 		while ((abs(left_front.get_position())<(abs(dist)-10)) && (abs(right_front.get_position())<(abs(dist)-10))) {}
 		delay(100);
 	}
+	left_drive.brake();
+	right_drive.brake();
 }
 
 /**
@@ -90,10 +92,10 @@ void driveTurn(float rotation, float velocity) {
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	left_front.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
-	right_front.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
-	left_rear.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
-	right_rear.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
+	left_front.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+	right_front.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+	left_rear.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+	right_rear.set_brake_mode(E_MOTOR_BRAKE_HOLD);
 	
 	roller.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
 	intake.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
@@ -258,16 +260,16 @@ void blueLeftFullWP() {
  * \author aHalliday13
  */
 void redLeftHalfDiscs() {
-	driveIn(-2,100);
+		driveIn(-2,100);
 	rollIntChain=70;
 	flywheel.move_velocity(550);
 	while (rollerOpL.get_hue() < 100){} // Rotate until blue
 	while (rollerOpL.get_hue() > 100){} // Rotate until red
 	rollIntChain.brake();
 
-	driveIn(3,25);
-	driveTurn(-7,10);
-    driveIn(3,10);
+	driveIn(3,50);
+	driveTurn(-5,10);
+    driveIn(3,50);
 	delay(500);
 
 	while (flywheel1.get_actual_velocity()<550) {}
@@ -285,26 +287,20 @@ void redLeftHalfDiscs() {
 
 	flywheel.brake();
 
-	driveTurn(-115,20);
+	driveTurn(-100,50);
 	rollIntChain=127;
 	driveIn(-36,100);
-	driveIn(-24,25);
+	driveIn(-14,50);
 	
-	driveTurn(80,50);
-	flywheel.move_velocity(550);
-	while (flywheel1.get_actual_velocity()<550) {}
-	for(int i=0;i<2;i++) {
+	driveTurn(60,90);
+	flywheel.move_velocity(500);
+	while (flywheel1.get_actual_velocity()<500) {}
+	for(int i=0;i<3;i++) {
 		indexer.set_value(true);
 		delay(1000);
 		indexer.set_value(false);
 		delay(500);
 	}
-
-	indexer.set_value(true);
-	delay(1000);
-	flywheel.move_velocity(550);
-	indexer.set_value(false);
-	delay(500);
 }
 
 /**
@@ -316,11 +312,14 @@ void blueLeftHalfDiscs() {
 	driveIn(-2,100);
 	rollIntChain=70;
 	flywheel.move_velocity(550);
-	while (rollerOpL.get_hue() < 100){} // Rotate until blue
 	while (rollerOpL.get_hue() > 100){} // Rotate until red
+	while (rollerOpL.get_hue() < 100){} // Rotate until blue
 	rollIntChain.brake();
 
-	driveTurn(5,50);
+	driveIn(3,50);
+	driveTurn(-5,10);
+    driveIn(3,50);
+	delay(500);
 
 	while (flywheel1.get_actual_velocity()<550) {}
 	indexer.set_value(true);
@@ -337,26 +336,20 @@ void blueLeftHalfDiscs() {
 
 	flywheel.brake();
 
-	driveTurn(-115,20);
+	driveTurn(-100,50);
 	rollIntChain=127;
 	driveIn(-36,100);
-	driveIn(-24,25);
+	driveIn(-14,50);
 	
-	driveTurn(80,50);
-	flywheel.move_velocity(550);
-	while (flywheel1.get_actual_velocity()<550) {}
-	for(int i=0;i<2;i++) {
+	driveTurn(60,90);
+	flywheel.move_velocity(500);
+	while (flywheel1.get_actual_velocity()<500) {}
+	for(int i=0;i<3;i++) {
 		indexer.set_value(true);
 		delay(1000);
 		indexer.set_value(false);
 		delay(500);
 	}
-
-	indexer.set_value(true);
-	delay(1000);
-	flywheel.move_velocity(550);
-	indexer.set_value(false);
-	delay(500);
 }
 
 /**
@@ -371,7 +364,7 @@ void blueLeftHalfDiscs() {
  * from where it left off.
  */
 void autonomous() {
-	redLeftFullWP();
+	blueLeftHalfDiscs();
 }
 
 /**
@@ -441,5 +434,8 @@ void opcontrol() {
 
 		// Fire the indexer
 		indexer.set_value(master.get_digital(E_CONTROLLER_DIGITAL_X));
+
+		// Trigger the expansion release
+		expansion.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN));
 	}
 }

@@ -41,3 +41,6 @@ ADIPort indexer(1,E_ADI_DIGITAL_OUT);
 
 // Inertial sensor on the center of rotation
 Imu inertial(11);
+
+// Expansion release trigger
+ADIPort expansion(2,E_ADI_DIGITAL_OUT);
