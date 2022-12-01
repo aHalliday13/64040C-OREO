@@ -1,96 +1,88 @@
 #include "main.h"
 #include "math.h"
+#include "devices.cpp"
 using namespace pros;
 
-// Our Left Y-Axis Curve Function. We use a define because it saves us both space in the source code, as well as RAM at runtime.
+/**
+ * THEORY is when you know everything but nothing works.
+ * PRACTICE is when everything works but no one knows why.
+ * In this lab, theory and practice are combined: nothing works, and no one knows why.
+ * - An absolute genius
+ */
+/**
+ * You turned the band saw into a spoon!
+ * - What happens when you cut steel on the bandsaw
+*/
+
+// Our Left Y-Axis Curve Function. We use a define because it makes the source code more readable, and saves RAM at runtime (over a variable).
 #define CUBERTCTRL_LY (master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y))*(cbrt(abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)) - 63.5) + 3.989556)*15.9148)
-// Driver control inversion, flips the front and back of the robot to make driving easier.
+// Driver control inversion, allows the driver to flip the front and back of the robot to make driving easier.
 bool driveInv=true;
 
-// Driver's Controller
-Controller master(E_CONTROLLER_MASTER);
-
-Motor left_front(1,E_MOTOR_GEAR_GREEN,1);
-Motor left_rear(9,E_MOTOR_GEAR_GREEN,1);
-// Motor group for the left side of the robot (Where the flywheel represents the front of the robot)
-Motor_Group left_drive({left_front,left_rear});
-
-Motor right_front(2,E_MOTOR_GEAR_GREEN);
-Motor right_rear(10,E_MOTOR_GEAR_GREEN);
-// Motor group for the right side of the robot (Where the flywheel represents the front of the robot)
-Motor_Group right_drive({right_front,right_rear});
-
-Motor flywheel1(8,E_MOTOR_GEAR_BLUE,true);
-Motor flywheel2(7,E_MOTOR_GEAR_BLUE);
-// Both flywheel motors in a motor group
-Motor_Group flywheel({flywheel1,flywheel2});
-
-Motor intake(3,E_MOTOR_GEAR_GREEN,true);
-Motor roller(4,E_MOTOR_GEAR_GREEN);
-// Both intake motors
-Motor_Group rollIntChain({intake,roller});
-
-// Optical sensor pointing at the roller (When the robot is on a roller)
-Optical rollerOp(5);
-//Hues: 221-240 for blue, 355-10 for red
-
-// Double acting pneumatic valve for sending discs into the flywheel
-ADIPort indexer(1,E_ADI_DIGITAL_OUT);
-
-// Inertial sensor on the center of rotation
-Imu inertial(9);
-
 /**
- * Drive Inches Function:
- * Set the distance to a value that is either positive or negative, positive moves forward, negative moves backward
- * Unless otherwise stated, function will wait until it finishes execution to continue on to the next action, so plan accordingly.
- * Velocity should be POSITIVE
+ * Drive a set number of inches forward. Uses the flywheel as the front of the robot.
+ * 
+ * \param dist
+ * 		  The distance in inches to drive. This value really isn't acurate or precise,
+ * 		  but it's close enough that you should be able to fine tune it with guesswork
+ * 		  once you have a rough idea. Set this value positive to go forward, and 
+ * 		  negative to go back.
+ * \param velocity
+ * 		  How fast to drive. For best results, go as slow as time will allow.
+ * 		  This should always be a positive number. Bound (0,100] for E_MOTOR_GEARSET_36,
+ * 		  (0,200] for E_MOTOR_GEARSET_18, and (0,600] for E_MOTOR_GEARSET_6	
+ * \param waitForComplete
+ * 		  Should this function wait until the movement is complete to exit. Defaults
+ * 		  to true.
+ * \return Nothing
+ * \author aHalliday13
  */
 void driveIn(float dist, float velocity, bool waitForComplete = true) {
 	// 1000 units is 19 3/16" 
 	// 57.1172 units per inch
+	dist=dist*57.1172;
+	left_drive.tare_position();
+	right_drive.tare_position();
 	left_drive.move_relative(dist,velocity);
 	right_drive.move_relative(dist,velocity);
 
 	if (waitForComplete) {
-		while(abs(left_front.get_target_velocity()) < 5 || abs(right_front.get_target_velocity()) < 5) {}
-		while(abs(left_front.get_target_velocity()) > 5 || abs(right_front.get_target_velocity()) > 5) {}
+		while ((abs(left_front.get_position())<(abs(dist)-10)) && (abs(right_front.get_position())<(abs(dist)-10))) {}
+		delay(100);
 	}
+	left_drive.brake();
+	right_drive.brake();
 }
 
 /**
- * Odometry turning function:
- * Angles should be bound (-180,180), with clockwise being positive and anti-clockwise being negative.
- * After turning using wheel odometry, the function will check if it is within ±5 degrees of the target, if it is not, it will *attempt* to correct itself.
- * Function will always wait to finish before moving on to next action.
- * Velocity should be POSITIVE!
+ * Turns the robot chasis a set number of degrees
+ * Uses the flywheel as the front of the robot
+ * 
+ * \param rotation
+ * 		  The number of degrees the robot should turn, bound [0,360), positive
+ * 		  values turn clockwise, negative values turn anti-clockwise
+ * 
+ * \param velocity
+ * 		  How fast to turn. For best results, go as slow as time will allow.
+ * 		  This should always be a positive number. Bound (0,100] for E_MOTOR_GEARSET_36,
+ * 		  (0,200] for E_MOTOR_GEARSET_18, and (0,600] for E_MOTOR_GEARSET_6	
+ * \return Nothing
+ * \author aHalliday13
  */
-void odoTurn(float angle, float velocity) {
-	inertial.tare_yaw();
-	left_drive.move_relative(angle,velocity);
-	right_drive.move_relative(-angle,velocity);
+void driveTurn(float rotation, float velocity) {
+	inertial.tare();
 
-	while(abs(left_front.get_target_velocity()) < 5 || abs(right_front.get_target_velocity()) < 5) {}
-	while(abs(left_front.get_target_velocity()) > 5 || abs(right_front.get_target_velocity()) > 5) {}
+	left_drive.move_velocity(rotation<0 ? -1*velocity : velocity);
+	right_drive.move_velocity(rotation>0 ? -1*velocity : velocity);
 
-	if (inertial.get_yaw()+5>angle && inertial.get_yaw()-5<angle) {
-		return;
+	if (rotation>0){
+		while (inertial.get_rotation()<rotation) {}
 	}
-	/*
-	else {
-		if (inertial.get_yaw()+5<angle) {
-			left_drive = 10;
-			right_drive = -10;
-			while(inertial.get_yaw()+5<angle) {}
-		}
-		else if (inertial.get_yaw()-5>angle) {
-			left_drive = -10;
-			right_drive = 10;
-			while(inertial.get_yaw()-5>angle) {}
-		}
-		left_drive.brake();
-		right_drive.brake();
-	}*/
+	else if (rotation<0) {
+		while (inertial.get_rotation()>rotation) {}
+	}
+	left_drive.brake();
+	right_drive.brake();
 }
 
 /**
@@ -100,14 +92,24 @@ void odoTurn(float angle, float velocity) {
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	left_front.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
-	right_front.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
-	left_rear.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
-	right_rear.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
+	left_front.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+	right_front.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+	left_rear.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+	right_rear.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+	
+	roller.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
+	intake.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
+
 	flywheel1.set_brake_mode(E_MOTOR_BRAKE_COAST);
 	flywheel2.set_brake_mode(E_MOTOR_BRAKE_COAST);
-	inertial.reset();
+	
+	inertial.reset(true);
 	inertial.tare();
+
+	rollerOpL.set_led_pwm(100);
+	rollerOpR.set_led_pwm(100);
+
+
 }
 
 /**
@@ -126,7 +128,229 @@ void disabled() {}
  * This task will exit when the robot is enabled and autonomous or opcontrol
  * starts.
  */
-void competition_initialize() {}
+void competition_initialize() {
+}
+
+/**
+ * Starts sitting next to the left roller, shoots preloads into high goal, then
+ * backs up, and spins the roller to red.
+ * \author aHalliday13
+ */
+void redLeftHalfWP() {
+	flywheel.move_velocity(550);
+	delay(3000);
+	for (int i=0;i<2;i++) {
+		indexer.set_value(true);
+		delay(1000);
+		indexer.set_value(false);
+		delay(500);
+	}
+	flywheel.brake();
+
+	driveTurn(10,75);
+	delay(1000);
+
+	left_drive=-100;
+	right_drive=-100;
+	delay(1000);
+	left_drive.brake();
+	right_drive.brake();
+
+	rollIntChain=70;
+	
+	while (rollerOpR.get_hue() < 100){} // Rotate until blue
+	while (rollerOpR.get_hue() > 100){} // Rotate until red
+	
+	rollIntChain.brake();
+}
+
+/**
+ * Starts sitting next to the left roller, shoots preloads into high goal, then
+ * backs up, and spins the roller to blue.
+ * \author aHalliday13
+ */
+void blueLeftHalfWP() {
+	flywheel.move_velocity(550);
+	delay(3000);
+	for (int i=0;i<2;i++) {
+		indexer.set_value(true);
+		delay(1000);
+		indexer.set_value(false);
+		delay(500);
+	}
+	flywheel.brake();
+
+	driveTurn(10,75);
+	delay(1000);
+
+	left_drive=-100;
+	right_drive=-100;
+	delay(1000);
+	left_drive.brake();
+	right_drive.brake();
+
+	rollIntChain=70;
+	
+	while (rollerOpR.get_hue() > 100){} // Rotate until red
+	while (rollerOpR.get_hue() < 100){} // Rotate until blue
+	
+	rollIntChain.brake();
+}
+
+/**
+ * Starts sitting on the left roller, shoots preloads into high goal, then
+ * backs up, and spins the roller to red. Robot will then cross field to other roller,
+ * picking up the discs in it's path (shooting them into goals) and then spinning the other roller to red.
+ * \author aHalliday13
+ */
+void redLeftFullWP() {
+	flywheel.move_voltage(12000);
+	left_drive=-100;
+	right_drive=-100;
+	delay(500);
+	left_drive.brake();
+	right_drive.brake();
+	rollIntChain=70;
+	while (rollerOpL.get_hue() < 100){} // Rotate until blue
+	while (rollerOpL.get_hue() > 100){} // Rotate until red
+	rollIntChain.brake();
+
+	right_drive.move_relative(200,200);
+
+	while (flywheel1.get_actual_velocity()<590) {}
+	indexer.set_value(true);
+	delay(1000);
+	indexer.set_value(false);
+	delay(500);
+
+	while (flywheel1.get_actual_velocity()<590) {}
+	indexer.set_value(true);
+	delay(1000);
+	indexer.set_value(false);
+	delay(500);
+
+	flywheel.brake();
+
+	driveTurn(50,50);
+	driveIn(70,200);
+
+	left_drive=127;
+	right_drive=127;
+	delay(2000);
+	left_drive.brake();
+	right_drive.brake();
+
+	driveIn(-5,70);
+	driveTurn(-90,100);
+}
+
+/**
+ * Starts sitting on the left roller, shoots preloads into high goal, then
+ * backs up, and spins the roller to blue. Robot will then cross field to other roller,
+ * picking up the three discs in it's path and then spinning the other roller to blue.
+ * \author aHalliday13
+ */
+void blueLeftFullWP() {
+	
+}
+
+/**
+ * Starts at the left half of the field, spins roller to red, shoots preloads, goes to
+ * center of field, grabs discs on the way, and then fires them into the goal.
+ * \author aHalliday13
+ */
+void redLeftHalfDiscs() {
+		driveIn(-2,100);
+	rollIntChain=70;
+	flywheel.move_velocity(550);
+	while (rollerOpL.get_hue() < 100){} // Rotate until blue
+	while (rollerOpL.get_hue() > 100){} // Rotate until red
+	rollIntChain.brake();
+
+	driveIn(3,50);
+	driveTurn(-5,10);
+    driveIn(3,50);
+	delay(500);
+
+	while (flywheel1.get_actual_velocity()<550) {}
+	indexer.set_value(true);
+	delay(1000);
+	flywheel.move_velocity(550);
+	indexer.set_value(false);
+	delay(500);
+
+	while (flywheel1.get_actual_velocity()<550) {}
+	indexer.set_value(true);
+	delay(1000);
+	indexer.set_value(false);
+	delay(500);
+
+	flywheel.brake();
+
+	driveTurn(-100,50);
+	rollIntChain=127;
+	driveIn(-36,100);
+	driveIn(-14,50);
+	
+	driveTurn(60,90);
+	flywheel.move_velocity(500);
+	while (flywheel1.get_actual_velocity()<500) {}
+	for(int i=0;i<3;i++) {
+		indexer.set_value(true);
+		delay(1000);
+		indexer.set_value(false);
+		delay(500);
+	}
+}
+
+/**
+ * Starts at the left half of the field, spins roller to blue, shoots preloads, goes to
+ * center of field, grabs discs on the way, and then fires them into the goal.
+ * \author aHalliday13
+ */
+void blueLeftHalfDiscs() {
+	driveIn(-2,100);
+	rollIntChain=70;
+	flywheel.move_velocity(550);
+	while (rollerOpL.get_hue() > 100){} // Rotate until red
+	while (rollerOpL.get_hue() < 100){} // Rotate until blue
+	rollIntChain.brake();
+
+	driveIn(3,50);
+	driveTurn(-5,10);
+    driveIn(3,50);
+	delay(500);
+
+	while (flywheel1.get_actual_velocity()<550) {}
+	indexer.set_value(true);
+	delay(1000);
+	flywheel.move_velocity(550);
+	indexer.set_value(false);
+	delay(500);
+
+	while (flywheel1.get_actual_velocity()<550) {}
+	indexer.set_value(true);
+	delay(1000);
+	indexer.set_value(false);
+	delay(500);
+
+	flywheel.brake();
+
+	driveTurn(-100,50);
+	rollIntChain=127;
+	driveIn(-36,100);
+	driveIn(-14,50);
+	
+	driveTurn(60,90);
+	flywheel.move_velocity(500);
+	while (flywheel1.get_actual_velocity()<500) {}
+	for(int i=0;i<3;i++) {
+		indexer.set_value(true);
+		delay(1000);
+		indexer.set_value(false);
+		delay(500);
+	}
+}
 
 /**
  * Runs the user autonomous code. This function will be started in its own task
@@ -139,7 +363,9 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
+	blueLeftHalfDiscs();
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -208,5 +434,8 @@ void opcontrol() {
 
 		// Fire the indexer
 		indexer.set_value(master.get_digital(E_CONTROLLER_DIGITAL_X));
+
+		// Trigger the expansion release
+		expansion.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN));
 	}
 }
