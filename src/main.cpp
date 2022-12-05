@@ -113,21 +113,22 @@ void initialize() {
 
 	// Autonomous selection menu
 	while (true) {
-		master.clear_line(2);
-		master.print(0, 2, "Route %d", routeSelection);
+		master.print(0, 0, "Route %d", routeSelection);
 		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_LEFT)) {
 			routeSelection--;
+			master.clear_line(0);
+			master.print(0, 0, "Route %d", routeSelection);
 		}
 		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_RIGHT)) {
 			routeSelection++;
+			master.clear_line(0);
+			master.print(0, 0, "Route %d", routeSelection);
 		}
 		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)) {
+			master.clear_line(0);
 			break;
 		}
 	}
-	master.print(0, 2, "Confirmed");
-	delay(500);
-	master.clear_line(2);
 }
 
 /**
@@ -171,15 +172,8 @@ void redLeftHalfWP() {
 	left_drive=-100;
 	right_drive=-100;
 	delay(1000);
-	left_drive.brake();
-	right_drive.brake();
 
-	rollIntChain=70;
-	
-	while (rollerOpR.get_hue() < 100){} // Rotate until blue
-	while (rollerOpR.get_hue() > 100){} // Rotate until red
-	
-	rollIntChain.brake();
+	rollIntChain.move_relative(600,100);
 }
 
 /**
@@ -249,17 +243,10 @@ void redLeftFullWP() {
 
 	flywheel.brake();
 
-	driveTurn(50,50);
-	driveIn(70,200);
-
-	left_drive=127;
-	right_drive=127;
-	delay(2000);
-	left_drive.brake();
-	right_drive.brake();
-
-	driveIn(-5,70);
-	driveTurn(-90,100);
+	driveIn(3,50);
+	driveTurn(80,50);
+	driveIn(20,80);
+	driveIn(-10,80);
 }
 
 /**
@@ -406,7 +393,7 @@ void redRightHalfDiscs() {
 	right_drive=-127;
 	delay(500);
 	left_drive=-127;
-	rollIntChain=70;
+	rollIntChain.move_voltage(7000);
 	while (rollerOpR.get_hue() < 100){} // Rotate until blue
 	while (rollerOpR.get_hue() > 100){} // Rotate until red
 	rollIntChain.brake();
@@ -444,14 +431,38 @@ void blueRightHalfDiscs() {
 	rollIntChain=127;
 	driveTurn(-77,30);
 	driveIn(-60,150);
-	rollIntChain.brake();
 	right_drive=-127;
 	delay(500);
 	left_drive=-127;
-	rollIntChain=70;
 	while (rollerOpR.get_hue() > 100){} // Rotate until red
 	while (rollerOpR.get_hue() < 100){} // Rotate until blue
 	rollIntChain.brake();
+}
+
+void skillsAuton() {
+	flywheel.move_velocity(550);
+	delay(3000);
+	for (int i=0;i<2;i++) {
+		indexer.set_value(true);
+		delay(1000);
+		indexer.set_value(false);
+		delay(500);
+	}
+	flywheel.brake();
+
+	driveTurn(10,75);
+	delay(1000);
+
+	left_drive=-100;
+	right_drive=-100;
+	delay(1000);
+	left_drive.brake();
+	right_drive.brake();
+
+	driveIn(5,50);
+	driveTurn(45,90);
+	expansion1.set_value(true);
+	expansion2.set_value(true);
 }
 
 /**
@@ -466,7 +477,10 @@ void blueRightHalfDiscs() {
  * from where it left off.
  */
 void autonomous() {
-	if (routeSelection==0) {
+	if (routeSelection==-1){
+		skillsAuton();
+	}
+	else if (routeSelection==0) {
 		redLeftHalfDiscs();
 	} else if (routeSelection==1) {
 		blueLeftHalfDiscs();
@@ -554,6 +568,7 @@ void opcontrol() {
 		indexer.set_value(master.get_digital(E_CONTROLLER_DIGITAL_X));
 
 		// Trigger the expansion release
-		expansion.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN));
+		expansion1.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN)||master.get_digital(E_CONTROLLER_DIGITAL_RIGHT));
+		expansion2.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN)||master.get_digital(E_CONTROLLER_DIGITAL_LEFT));
 	}
 }

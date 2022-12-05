@@ -11,8 +11,8 @@ using namespace pros;
 // Driver's Controller
 Controller master(E_CONTROLLER_MASTER);
 
-Motor left_front(1,E_MOTOR_GEAR_GREEN,1);
-Motor left_rear(9,E_MOTOR_GEAR_GREEN,1);
+Motor left_front(1,E_MOTOR_GEAR_GREEN,true);
+Motor left_rear(9,E_MOTOR_GEAR_GREEN,true);
 // Motor group for the left side of the robot (Where the flywheel represents the front of the robot)
 Motor_Group left_drive({left_front,left_rear});
 
@@ -42,5 +42,6 @@ ADIPort indexer(1,E_ADI_DIGITAL_OUT);
 // Inertial sensor on the center of rotation
 Imu inertial(11);
 
-// Expansion release trigger
-ADIPort expansion(2,E_ADI_DIGITAL_OUT);
+// Expansion release triggers
+ADIPort expansion1(2,E_ADI_DIGITAL_OUT);
+ADIPort expansion2(3,E_ADI_DIGITAL_OUT);
