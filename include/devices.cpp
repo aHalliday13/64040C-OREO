@@ -29,7 +29,7 @@ Motor_Group flywheel({flywheel1,flywheel2});
 Motor intake(3,E_MOTOR_GEAR_GREEN,true);
 Motor roller(4,E_MOTOR_GEAR_GREEN);
 // Both intake motors
-Motor_Group rollIntChain({intake,roller});
+Motor_Group rollerIntake({intake,roller});
 
 // Optical sensor pointing at the roller on the right side of robot (Where the flywheel represents the front of the robot)
 Optical rollerOpR(5);

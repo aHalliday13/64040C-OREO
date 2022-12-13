@@ -1,6 +1,7 @@
 #include "main.h"
 #include "math.h"
 #include "devices.cpp"
+#include <vector>
 using namespace pros;
 
 /**
@@ -8,49 +9,101 @@ using namespace pros;
  * PRACTICE is when everything works but no one knows why.
  * In this lab, theory and practice are combined: nothing works, and no one knows why.
  * - An absolute genius
- */
-/**
+ *
  * You turned the band saw into a spoon!
  * - What happens when you cut steel on the bandsaw
 */
 
-// Our Left Y-Axis Curve Function. We use a define because it makes the source code more readable, and saves RAM at runtime (over a variable).
+// Our Left Y-Axis Curve Function. We use a define because it makes the source code more readable, and saves RAM at runtime instead of a variable.
 #define CUBERTCTRL_LY (master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y))*(cbrt(abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)) - 63.5) + 3.989556)*15.9148)
-// Driver control inversion, allows the driver to flip the front and back of the robot to make driving easier.
-bool driveInv=true;
+// TeleOp inversion, allows the driver to flip the front and back of the robot to make driving easier.
+bool invertDrivetrainTeleOp=true;
 // Autonomous selection variable
 int routeSelection=0;
+// Flywheel velocity variable so that we can return to the same velocity after a shot
+float flywheelVelocity=0;
 
 /**
  * Drive a set number of inches forward. Uses the flywheel as the front of the robot.
  * 
- * \param dist
- * 		  The distance in inches to drive. This value really isn't acurate or precise,
+ * \param distance
+ * 		  The distance in units to drive. This value really isn't acurate or precise,
  * 		  but it's close enough that you should be able to fine tune it with guesswork
  * 		  once you have a rough idea. Set this value positive to go forward, and 
  * 		  negative to go back.
- * \param velocity
- * 		  How fast to drive. For best results, go as slow as time will allow.
- * 		  This should always be a positive number. Bound (0,100] for E_MOTOR_GEARSET_36,
- * 		  (0,200] for E_MOTOR_GEARSET_18, and (0,600] for E_MOTOR_GEARSET_6	
- * \param waitForComplete
- * 		  Should this function wait until the movement is complete to exit. Defaults
- * 		  to true.
+ * \param maxVoltage
+ * 		  The maximum voltage to send to the motors. This value should be between
+ * 		  0mV and 12000mV.
+ * \param kP 
+ * 		  The proportional constant for the PID loop. This should be a positive 
+ * 		  number. This will be assigned a default value. If you need to change 
+ * 		  this at any point, you should change the default, not the value passed
+ * 		  to the function.
+ * \param kI
+ * 		  The integral constant for the PID loop. This should be a positive 
+ * 		  number. This will be assigned a default value. If you need to change 
+ * 		  this at any point, you should change the default, not the value passed
+ * 		  to the function.
+ * \param kD
+ * 		  The derivative constant for the PID loop. This should be a positive 
+ * 		  number. This will be assigned a default value. If you need to change 
+ * 		  this at any point, you should change the default, not the value passed
+ * 		  to the function.
+ * \param unitsPerInch
+ * 		  The number of encoder units per inch of travel. This value is specific
+ * 		  to each robot, and should be set to a default value. If you need to change
+ * 		  this at any point, you should change the default, not the value passed to
+ * 		  the function.
  * \return Nothing
  * \author aHalliday13
  */
-void driveIn(float dist, float velocity, bool waitForComplete = true) {
-	// 1000 units is 19 3/16" 
-	// 57.1172 units per inch
-	dist=dist*57.1172;
+void driveIn(float distance, float maxVoltage, float kP=30, float kI=.05, float kD=500, float unitsPerInch=51.546392) {
+	// 2500 units = 48.5 inches
+	float error,lastError,integral,derivative,power,tweak;
+	distance=distance*unitsPerInch;
+	error=distance;
+	std::vector<double> leftEncoderValues,rightEncoderValues;
+
+	// Reset the encoders
 	left_drive.tare_position();
 	right_drive.tare_position();
-	left_drive.move_relative(dist,velocity);
-	right_drive.move_relative(dist,velocity);
 
-	if (waitForComplete) {
-		while ((abs(left_front.get_position())<(abs(dist)-10)) && (abs(right_front.get_position())<(abs(dist)-10))) {}
-		delay(100);
+	while(error>5) {
+		leftEncoderValues=left_drive.get_positions();
+		rightEncoderValues=right_drive.get_positions();
+		
+		// Calculate the error
+		error=distance-(leftEncoderValues[0]+rightEncoderValues[0]+leftEncoderValues[1]+rightEncoderValues[1])/4;
+		
+		// Update the integral
+		integral=integral+error;
+		
+		// Calculate the derivative
+		derivative=error-lastError;
+		lastError=error;
+		
+		// Calculate the power, apply power
+		power=error*kP+integral*kI+derivative*kD;
+		if (leftEncoderValues[1]>rightEncoderValues[1]){
+			tweak--;
+		}
+		if(leftEncoderValues[1]<rightEncoderValues[1]){
+			tweak++;
+		}
+		else {
+			tweak=0;
+		}
+
+		// Cap the power
+		if(power>maxVoltage) {
+			power=maxVoltage;
+		}
+
+		left_drive.move_voltage(power+tweak);
+		right_drive.move_voltage(power-tweak);
+		
+		// Wait a set ammount of time to ensure that dT remains fairly constant
+		pros::delay(15);
 	}
 	left_drive.brake();
 	right_drive.brake();
@@ -72,17 +125,17 @@ void driveIn(float dist, float velocity, bool waitForComplete = true) {
  * \author aHalliday13
  */
 void driveTurn(float rotation, float velocity) {
+	// Tare the inertial sensor
 	inertial.tare();
 
+	// Start turning in the appropriate direction
 	left_drive.move_velocity(rotation<0 ? -1*velocity : velocity);
 	right_drive.move_velocity(rotation>0 ? -1*velocity : velocity);
 
-	if (rotation>0){
-		while (inertial.get_rotation()<rotation) {}
-	}
-	else if (rotation<0) {
-		while (inertial.get_rotation()>rotation) {}
-	}
+	// Wait for the inertial sensor to reach the desired rotation
+	while (abs(inertial.get_rotation())<abs(rotation)) {}
+	
+	// Stop the motors
 	left_drive.brake();
 	right_drive.brake();
 }
@@ -111,6 +164,7 @@ void initialize() {
 	rollerOpL.set_led_pwm(100);
 	rollerOpR.set_led_pwm(100);
 
+	/*
 	// Autonomous selection menu
 	while (true) {
 		master.print(0, 0, "Route %d", routeSelection);
@@ -128,7 +182,7 @@ void initialize() {
 			master.clear_line(0);
 			break;
 		}
-	}
+	}*/
 }
 
 /**
@@ -157,23 +211,23 @@ void competition_initialize() {
  */
 void redLeftHalfWP() {
 	flywheel.move_velocity(550);
-	delay(3000);
+	pros::delay(3000);
 	for (int i=0;i<2;i++) {
 		indexer.set_value(true);
-		delay(1000);
+		pros::delay(1000);
 		indexer.set_value(false);
-		delay(500);
+		pros::delay(500);
 	}
 	flywheel.brake();
 
 	driveTurn(10,75);
-	delay(1000);
+	pros::delay(1000);
 
 	left_drive=-100;
 	right_drive=-100;
-	delay(1000);
+	pros::delay(1000);
 
-	rollIntChain.move_relative(600,100);
+	rollerIntake.move_relative(600,100);
 }
 
 /**
@@ -183,30 +237,30 @@ void redLeftHalfWP() {
  */
 void blueLeftHalfWP() {
 	flywheel.move_velocity(550);
-	delay(3000);
+	pros::delay(3000);
 	for (int i=0;i<2;i++) {
 		indexer.set_value(true);
-		delay(1000);
+		pros::delay(1000);
 		indexer.set_value(false);
-		delay(500);
+		pros::delay(500);
 	}
 	flywheel.brake();
 
 	driveTurn(10,75);
-	delay(1000);
+	pros::delay(1000);
 
 	left_drive=-100;
 	right_drive=-100;
-	delay(1000);
+	pros::delay(1000);
 	left_drive.brake();
 	right_drive.brake();
 
-	rollIntChain=70;
+	rollerIntake=70;
 	
 	while (rollerOpR.get_hue() > 100){} // Rotate until red
 	while (rollerOpR.get_hue() < 100){} // Rotate until blue
 	
-	rollIntChain.brake();
+	rollerIntake.brake();
 }
 
 /**
@@ -219,27 +273,27 @@ void redLeftFullWP() {
 	flywheel.move_voltage(12000);
 	left_drive=-100;
 	right_drive=-100;
-	delay(500);
+	pros::delay(500);
 	left_drive.brake();
 	right_drive.brake();
-	rollIntChain=70;
+	rollerIntake=70;
 	while (rollerOpL.get_hue() < 100){} // Rotate until blue
 	while (rollerOpL.get_hue() > 100){} // Rotate until red
-	rollIntChain.brake();
+	rollerIntake.brake();
 
 	right_drive.move_relative(200,200);
 
 	while (flywheel1.get_actual_velocity()<590) {}
 	indexer.set_value(true);
-	delay(1000);
+	pros::delay(1000);
 	indexer.set_value(false);
-	delay(500);
+	pros::delay(500);
 
 	while (flywheel1.get_actual_velocity()<590) {}
 	indexer.set_value(true);
-	delay(1000);
+	pros::delay(1000);
 	indexer.set_value(false);
-	delay(500);
+	pros::delay(500);
 
 	flywheel.brake();
 
@@ -265,35 +319,35 @@ void blueLeftFullWP() {
  * \author aHalliday13
  */
 void redLeftHalfDiscs() {
-		driveIn(-2,100);
-	rollIntChain=70;
+	driveIn(-2,100);
+	rollerIntake=70;
 	flywheel.move_velocity(550);
 	while (rollerOpL.get_hue() < 100){} // Rotate until blue
 	while (rollerOpL.get_hue() > 100){} // Rotate until red
-	rollIntChain.brake();
+	rollerIntake.brake();
 
 	driveIn(3,50);
 	driveTurn(-5,10);
     driveIn(3,50);
-	delay(500);
+	pros::delay(500);
 
 	while (flywheel1.get_actual_velocity()<550) {}
 	indexer.set_value(true);
-	delay(1000);
+	pros::delay(1000);
 	flywheel.move_velocity(550);
 	indexer.set_value(false);
-	delay(500);
+	pros::delay(500);
 
 	while (flywheel1.get_actual_velocity()<550) {}
 	indexer.set_value(true);
-	delay(1000);
+	pros::delay(1000);
 	indexer.set_value(false);
-	delay(500);
+	pros::delay(500);
 
 	flywheel.brake();
 
 	driveTurn(-100,50);
-	rollIntChain=127;
+	rollerIntake=127;
 	driveIn(-36,100);
 	driveIn(-14,50);
 	
@@ -302,9 +356,9 @@ void redLeftHalfDiscs() {
 	while (flywheel1.get_actual_velocity()<500) {}
 	for(int i=0;i<3;i++) {
 		indexer.set_value(true);
-		delay(1000);
+		pros::delay(1000);
 		indexer.set_value(false);
-		delay(500);
+		pros::delay(500);
 	}
 }
 
@@ -315,34 +369,34 @@ void redLeftHalfDiscs() {
  */
 void blueLeftHalfDiscs() {
 	driveIn(-2,100);
-	rollIntChain=70;
+	rollerIntake=70;
 	flywheel.move_velocity(550);
 	while (rollerOpL.get_hue() > 100){} // Rotate until red
 	while (rollerOpL.get_hue() < 100){} // Rotate until blue
-	rollIntChain.brake();
+	rollerIntake.brake();
 
 	driveIn(3,50);
 	driveTurn(-5,10);
     driveIn(3,50);
-	delay(500);
+	pros::delay(500);
 
 	while (flywheel1.get_actual_velocity()<550) {}
 	indexer.set_value(true);
-	delay(1000);
+	pros::delay(1000);
 	flywheel.move_velocity(550);
 	indexer.set_value(false);
-	delay(500);
+	pros::delay(500);
 
 	while (flywheel1.get_actual_velocity()<550) {}
 	indexer.set_value(true);
-	delay(1000);
+	pros::delay(1000);
 	indexer.set_value(false);
-	delay(500);
+	pros::delay(500);
 
 	flywheel.brake();
 
 	driveTurn(-100,50);
-	rollIntChain=127;
+	rollerIntake=127;
 	driveIn(-36,100);
 	driveIn(-14,50);
 	
@@ -351,9 +405,9 @@ void blueLeftHalfDiscs() {
 	while (flywheel1.get_actual_velocity()<500) {}
 	for(int i=0;i<3;i++) {
 		indexer.set_value(true);
-		delay(1000);
+		pros::delay(1000);
 		indexer.set_value(false);
-		delay(500);
+		pros::delay(500);
 	}
 }
 
@@ -367,36 +421,36 @@ void redRightHalfDiscs() {
 	while (flywheel1.get_actual_velocity()<550) {}
 	for(int i=0;i<2;i++) {
 		indexer.set_value(true);
-		delay(1000);
+		pros::delay(1000);
 		indexer.set_value(false);
-		delay(500);
+		pros::delay(500);
 	}
 	flywheel.brake();
 	driveTurn(110,30);
-	rollIntChain=127;
+	rollerIntake=127;
 	driveIn(-40,100);
 	driveTurn(-85,30);
-	rollIntChain.brake();
+	rollerIntake.brake();
 	flywheel.move_velocity(500);
 	while (flywheel1.get_actual_velocity()<500) {}
 	for(int i=0;i<2;i++) {
 		indexer.set_value(true);
-		delay(1000);
+		pros::delay(1000);
 		indexer.set_value(false);
-		delay(500);
+		pros::delay(500);
 	}
 	flywheel.brake();
-	rollIntChain=127;
+	rollerIntake=127;
 	driveTurn(-77,30);
 	driveIn(-60,150);
-	rollIntChain.brake();
+	rollerIntake.brake();
 	right_drive=-127;
-	delay(500);
+	pros::delay(500);
 	left_drive=-127;
-	rollIntChain.move_voltage(7000);
+	rollerIntake.move_voltage(7000);
 	while (rollerOpR.get_hue() < 100){} // Rotate until blue
 	while (rollerOpR.get_hue() > 100){} // Rotate until red
-	rollIntChain.brake();
+	rollerIntake.brake();
 }
 
 /**
@@ -409,53 +463,58 @@ void blueRightHalfDiscs() {
 	while (flywheel1.get_actual_velocity()<550) {}
 	for(int i=0;i<2;i++) {
 		indexer.set_value(true);
-		delay(1000);
+		pros::delay(1000);
 		indexer.set_value(false);
-		delay(500);
+		pros::delay(500);
 	}
 	flywheel.brake();
 	driveTurn(110,30);
-	rollIntChain=127;
+	rollerIntake=127;
 	driveIn(-40,100);
 	driveTurn(-90,30);
-	rollIntChain.brake();
+	rollerIntake.brake();
 	flywheel.move_velocity(500);
 	while (flywheel1.get_actual_velocity()<500) {}
 	for(int i=0;i<2;i++) {
 		indexer.set_value(true);
-		delay(1000);
+		pros::delay(1000);
 		indexer.set_value(false);
-		delay(500);
+		pros::delay(500);
 	}
 	flywheel.brake();
-	rollIntChain=127;
+	rollerIntake=127;
 	driveTurn(-77,30);
 	driveIn(-60,150);
 	right_drive=-127;
-	delay(500);
+	pros::delay(500);
 	left_drive=-127;
 	while (rollerOpR.get_hue() > 100){} // Rotate until red
 	while (rollerOpR.get_hue() < 100){} // Rotate until blue
-	rollIntChain.brake();
+	rollerIntake.brake();
 }
 
+/**
+ * Shoots discs into high goal (hopefully), spins roller to red, and then 
+ * triggers the expansion release.
+ * \author aHalliday13
+ */
 void skillsAuton() {
 	flywheel.move_velocity(550);
-	delay(3000);
+	pros::delay(3000);
 	for (int i=0;i<2;i++) {
 		indexer.set_value(true);
-		delay(1000);
+		pros::delay(1000);
 		indexer.set_value(false);
-		delay(500);
+		pros::delay(500);
 	}
 	flywheel.brake();
 
 	driveTurn(10,75);
-	delay(1000);
+	pros::delay(1000);
 
 	left_drive=-100;
 	right_drive=-100;
-	delay(1000);
+	pros::delay(1000);
 	left_drive.brake();
 	right_drive.brake();
 
@@ -477,24 +536,32 @@ void skillsAuton() {
  * from where it left off.
  */
 void autonomous() {
+	// Yes, I know it's bad practice to call functions from within a function, but it works, and this is unfortunatley the best way to organize it.
 	if (routeSelection==-1){
 		skillsAuton();
 	}
 	else if (routeSelection==0) {
 		redLeftHalfDiscs();
-	} else if (routeSelection==1) {
+	} 
+	else if (routeSelection==1) {
 		blueLeftHalfDiscs();
-	} else if (routeSelection==2) {
+	} 
+	else if (routeSelection==2) {
 		redRightHalfDiscs();
-	} else if (routeSelection==3) {
+	} 
+	else if (routeSelection==3) {
 		blueRightHalfDiscs();
-	} else if (routeSelection==4) {
+	} 
+	else if (routeSelection==4) {
 		redLeftHalfWP();
-	} else if (routeSelection==5) {
+	} 
+	else if (routeSelection==5) {
 		blueLeftHalfWP();
-	} else if (routeSelection==6) {
+	} 
+	else if (routeSelection==6) {
 		redLeftFullWP();
-	} else if (routeSelection==7) {
+	} 
+	else if (routeSelection==7) {
 		blueLeftFullWP();
 	}
 }
@@ -515,16 +582,16 @@ void autonomous() {
 void opcontrol() {
 	while (true) {
 		// Drivetrain control functions
-		left_drive = (CUBERTCTRL_LY*(driveInv ? -1 : 1) + master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
-		right_drive = (CUBERTCTRL_LY*(driveInv ? -1 : 1) - master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+		left_drive = (CUBERTCTRL_LY*(invertDrivetrainTeleOp ? -1 : 1) + master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+		right_drive = (CUBERTCTRL_LY*(invertDrivetrainTeleOp ? -1 : 1) - master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
 
 		// Invert the drivetrain if the driver requests it
 		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_A)){
-			driveInv= !driveInv;
+			invertDrivetrainTeleOp= !invertDrivetrainTeleOp;
 		}
 
 		// Set the intake/ roller velocity
-		rollIntChain = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_Y);
+		rollerIntake = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_Y);
 
 		// Set flywheel velocity
 		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_L1)){
