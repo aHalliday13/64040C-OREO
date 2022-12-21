@@ -11,36 +11,35 @@ using namespace pros;
 // Driver's Controller
 Controller master(E_CONTROLLER_MASTER);
 
-Motor left_front(1,E_MOTOR_GEAR_GREEN,true);
-Motor left_rear(9,E_MOTOR_GEAR_GREEN,true);
-// Motor group for the left side of the robot (Where the flywheel represents the front of the robot)
-Motor_Group left_drive({left_front,left_rear});
-
-Motor right_front(2,E_MOTOR_GEAR_GREEN);
-Motor right_rear(10,E_MOTOR_GEAR_GREEN);
+Motor right_front(1,E_MOTOR_GEAR_GREEN);
+Motor right_rear(2,E_MOTOR_GEAR_GREEN);
 // Motor group for the right side of the robot (Where the flywheel represents the front of the robot)
 Motor_Group right_drive({right_front,right_rear});
 
-Motor flywheel1(8,E_MOTOR_GEAR_BLUE,true);
-Motor flywheel2(7,E_MOTOR_GEAR_BLUE);
+Motor left_front(9,E_MOTOR_GEAR_GREEN,true);
+Motor left_rear(10,E_MOTOR_GEAR_GREEN,true);
+// Motor group for the left side of the robot (Where the flywheel represents the front of the robot)
+Motor_Group left_drive({left_front,left_rear});
+
+Motor flywheel1(7,E_MOTOR_GEAR_BLUE,true);
+Motor flywheel2(8,E_MOTOR_GEAR_BLUE);
 // Both flywheel motors in a motor group
 Motor_Group flywheel({flywheel1,flywheel2});
 
-Motor intake(3,E_MOTOR_GEAR_GREEN,true);
-Motor roller(4,E_MOTOR_GEAR_GREEN);
+Motor intake1(4,E_MOTOR_GEAR_GREEN,true);
+Motor intake2(5,E_MOTOR_GEAR_GREEN);
 // Both intake motors
-Motor_Group rollerIntake({intake,roller});
+Motor_Group rollerIntake({intake1,intake2});
 
-// Optical sensor pointing at the roller on the right side of robot (Where the flywheel represents the front of the robot)
-Optical rollerOpR(5);
-// Optical sensor pointing at the roller on the left side of robot (Where the flywheel represents the front of the robot)
-Optical rollerOpL(6);
+// Optical sensors for detecting roller state
+Optical rollerOpR(12);
+Optical rollerOpL(13);
+
+// Inertial sensor on the center of rotation
+Imu inertial(15);
 
 // Double acting pneumatic valve for sending discs into the flywheel
 ADIPort indexer(1,E_ADI_DIGITAL_OUT);
-
-// Inertial sensor on the center of rotation
-Imu inertial(11);
 
 // Expansion release triggers
 ADIPort expansion1(2,E_ADI_DIGITAL_OUT);

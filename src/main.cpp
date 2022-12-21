@@ -57,7 +57,7 @@ float flywheelVelocity=0;
  * \return Nothing
  * \author aHalliday13
  */
-void driveIn(float distance, float maxVoltage, float kP=30, float kI=.05, float kD=500, float unitsPerInch=51.546392) {
+void driveIn(float distance, float maxVoltage=12000, float kP=30, float kI=.05, float kD=500, float unitsPerInch=51.546392) {
 	// 2500 units = 48.5 inches
 	float error,lastError,integral,derivative,power,tweak;
 	distance=distance*unitsPerInch;
@@ -152,8 +152,8 @@ void initialize() {
 	left_rear.set_brake_mode(E_MOTOR_BRAKE_HOLD);
 	right_rear.set_brake_mode(E_MOTOR_BRAKE_HOLD);
 	
-	roller.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
-	intake.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
+	intake1.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
+	intake2.set_brake_mode(E_MOTOR_BRAKE_BRAKE);
 
 	flywheel1.set_brake_mode(E_MOTOR_BRAKE_COAST);
 	flywheel2.set_brake_mode(E_MOTOR_BRAKE_COAST);
@@ -270,37 +270,31 @@ void blueLeftHalfWP() {
  * \author aHalliday13
  */
 void redLeftFullWP() {
-	flywheel.move_voltage(12000);
+	flywheel.move_velocity(555);
 	left_drive=-100;
 	right_drive=-100;
 	pros::delay(500);
+	rollerIntake.move_relative(600,100);
 	left_drive.brake();
 	right_drive.brake();
-	rollerIntake=70;
-	while (rollerOpL.get_hue() < 100){} // Rotate until blue
-	while (rollerOpL.get_hue() > 100){} // Rotate until red
-	rollerIntake.brake();
 
-	right_drive.move_relative(200,200);
+	driveIn(3);
+	driveTurn(-2,50);
+	driveIn(3);
 
-	while (flywheel1.get_actual_velocity()<590) {}
+	while(abs(flywheel1.get_actual_velocity())<550){}
 	indexer.set_value(true);
 	pros::delay(1000);
 	indexer.set_value(false);
 	pros::delay(500);
 
-	while (flywheel1.get_actual_velocity()<590) {}
+	while(abs(flywheel1.get_actual_velocity())<550){}
 	indexer.set_value(true);
 	pros::delay(1000);
 	indexer.set_value(false);
 	pros::delay(500);
 
 	flywheel.brake();
-
-	driveIn(3,50);
-	driveTurn(80,50);
-	driveIn(20,80);
-	driveIn(-10,80);
 }
 
 /**
@@ -536,6 +530,7 @@ void skillsAuton() {
  * from where it left off.
  */
 void autonomous() {
+	return;
 	// Yes, I know it's bad practice to call functions from within a function, but it works, and this is unfortunatley the best way to organize it.
 	if (routeSelection==-1){
 		skillsAuton();
