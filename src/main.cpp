@@ -57,9 +57,9 @@ float flywheelVelocity=0;
  * \return Nothing
  * \author aHalliday13
  */
-void driveIn(float distance, float maxVoltage=12000, float kP=30, float kI=.05, float kD=500, float unitsPerInch=51.546392) {
+void driveIn(float distance, float maxVoltage=12000, float kP=30, float kI=.05, float kD=500, float unitsPerInch=57.9184632727) {
 	// 2500 units = 48.5 inches
-	float error,lastError,integral,derivative,power,tweak;
+	float error,lastError,integral,derivative,power,tweak=0;
 	distance=distance*unitsPerInch;
 	error=distance;
 	std::vector<double> leftEncoderValues,rightEncoderValues;
@@ -68,7 +68,7 @@ void driveIn(float distance, float maxVoltage=12000, float kP=30, float kI=.05, 
 	left_drive.tare_position();
 	right_drive.tare_position();
 
-	while(error>5) {
+	while(abs(error)>15) {
 		leftEncoderValues=left_drive.get_positions();
 		rightEncoderValues=right_drive.get_positions();
 		
@@ -84,19 +84,10 @@ void driveIn(float distance, float maxVoltage=12000, float kP=30, float kI=.05, 
 		
 		// Calculate the power, apply power
 		power=error*kP+integral*kI+derivative*kD;
-		if (leftEncoderValues[1]>rightEncoderValues[1]){
-			tweak--;
-		}
-		if(leftEncoderValues[1]<rightEncoderValues[1]){
-			tweak++;
-		}
-		else {
-			tweak=0;
-		}
 
 		// Cap the power
-		if(power>maxVoltage) {
-			power=maxVoltage;
+		if(abs(power)>maxVoltage) {
+			power= power<0 ? -maxVoltage : maxVoltage;
 		}
 
 		left_drive.move_voltage(power+tweak);
@@ -205,71 +196,12 @@ void competition_initialize() {
 }
 
 /**
- * Starts sitting next to the left roller, shoots preloads into high goal, then
- * backs up, and spins the roller to red.
- * \author aHalliday13
- */
-void redLeftHalfWP() {
-	flywheel.move_velocity(550);
-	pros::delay(3000);
-	for (int i=0;i<2;i++) {
-		indexer.set_value(true);
-		pros::delay(1000);
-		indexer.set_value(false);
-		pros::delay(500);
-	}
-	flywheel.brake();
-
-	driveTurn(10,75);
-	pros::delay(1000);
-
-	left_drive=-100;
-	right_drive=-100;
-	pros::delay(1000);
-
-	rollerIntake.move_relative(600,100);
-}
-
-/**
- * Starts sitting next to the left roller, shoots preloads into high goal, then
- * backs up, and spins the roller to blue.
- * \author aHalliday13
- */
-void blueLeftHalfWP() {
-	flywheel.move_velocity(550);
-	pros::delay(3000);
-	for (int i=0;i<2;i++) {
-		indexer.set_value(true);
-		pros::delay(1000);
-		indexer.set_value(false);
-		pros::delay(500);
-	}
-	flywheel.brake();
-
-	driveTurn(10,75);
-	pros::delay(1000);
-
-	left_drive=-100;
-	right_drive=-100;
-	pros::delay(1000);
-	left_drive.brake();
-	right_drive.brake();
-
-	rollerIntake=70;
-	
-	while (rollerOpR.get_hue() > 100){} // Rotate until red
-	while (rollerOpR.get_hue() < 100){} // Rotate until blue
-	
-	rollerIntake.brake();
-}
-
-/**
  * Starts sitting on the left roller, shoots preloads into high goal, then
- * backs up, and spins the roller to red. Robot will then cross field to other roller,
- * picking up the discs in it's path (shooting them into goals) and then spinning the other roller to red.
+ * backs up, and spins the roller. Robot will then cross field to other roller,
+ * picking up the discs in it's path (shooting them into goals) and then spinning the other roller.
  * \author aHalliday13
  */
-void redLeftFullWP() {
+void leftFullWP() {
 	flywheel.move_velocity(555);
 	left_drive=-100;
 	right_drive=-100;
@@ -298,118 +230,45 @@ void redLeftFullWP() {
 }
 
 /**
- * Starts sitting on the left roller, shoots preloads into high goal, then
- * backs up, and spins the roller to blue. Robot will then cross field to other roller,
- * picking up the three discs in it's path and then spinning the other roller to blue.
- * \author aHalliday13
- */
-void blueLeftFullWP() {
-	
-}
-
-/**
- * Starts at the left half of the field, spins roller to red, shoots preloads, goes to
+ * Starts at the left half of the field, spins roller, shoots preloads, goes to
  * center of field, grabs discs on the way, and then fires them into the goal.
  * \author aHalliday13
  */
-void redLeftHalfDiscs() {
-	driveIn(-2,100);
-	rollerIntake=70;
-	flywheel.move_velocity(550);
-	while (rollerOpL.get_hue() < 100){} // Rotate until blue
-	while (rollerOpL.get_hue() > 100){} // Rotate until red
-	rollerIntake.brake();
-
-	driveIn(3,50);
-	driveTurn(-5,10);
-    driveIn(3,50);
-	pros::delay(500);
-
-	while (flywheel1.get_actual_velocity()<550) {}
+void leftHalfDiscs() {
+	flywheel.move_velocity(520);
+	rollerIntake.move_relative(-600,100);
+	pros::delay(3000);
 	indexer.set_value(true);
-	pros::delay(1000);
-	flywheel.move_velocity(550);
-	indexer.set_value(false);
 	pros::delay(500);
-
-	while (flywheel1.get_actual_velocity()<550) {}
+	indexer.set_value(false);
+	pros::delay(1000);
 	indexer.set_value(true);
-	pros::delay(1000);
-	indexer.set_value(false);
 	pros::delay(500);
-
-	flywheel.brake();
-
-	driveTurn(-100,50);
-	rollerIntake=127;
-	driveIn(-36,100);
-	driveIn(-14,50);
-	
-	driveTurn(60,90);
-	flywheel.move_velocity(500);
-	while (flywheel1.get_actual_velocity()<500) {}
-	for(int i=0;i<3;i++) {
-		indexer.set_value(true);
-		pros::delay(1000);
-		indexer.set_value(false);
-		pros::delay(500);
-	}
+	indexer.set_value(false);
+	driveTurn(-110,40);
+	rollerIntake.move_velocity(600);
+	flywheel.move_velocity(470);
+	driveIn(-55,10000);
+	driveTurn(88.5,30);
+	pros::delay(1200);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
+	pros::delay(1200);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
+	pros::delay(1200);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
 }
 
 /**
- * Starts at the left half of the field, spins roller to blue, shoots preloads, goes to
- * center of field, grabs discs on the way, and then fires them into the goal.
+ * Starts at the right half of the field, shoots preloads, spins roller.
  * \author aHalliday13
  */
-void blueLeftHalfDiscs() {
-	driveIn(-2,100);
-	rollerIntake=70;
-	flywheel.move_velocity(550);
-	while (rollerOpL.get_hue() > 100){} // Rotate until red
-	while (rollerOpL.get_hue() < 100){} // Rotate until blue
-	rollerIntake.brake();
-
-	driveIn(3,50);
-	driveTurn(-5,10);
-    driveIn(3,50);
-	pros::delay(500);
-
-	while (flywheel1.get_actual_velocity()<550) {}
-	indexer.set_value(true);
-	pros::delay(1000);
-	flywheel.move_velocity(550);
-	indexer.set_value(false);
-	pros::delay(500);
-
-	while (flywheel1.get_actual_velocity()<550) {}
-	indexer.set_value(true);
-	pros::delay(1000);
-	indexer.set_value(false);
-	pros::delay(500);
-
-	flywheel.brake();
-
-	driveTurn(-100,50);
-	rollerIntake=127;
-	driveIn(-36,100);
-	driveIn(-14,50);
-	
-	driveTurn(60,90);
-	flywheel.move_velocity(500);
-	while (flywheel1.get_actual_velocity()<500) {}
-	for(int i=0;i<3;i++) {
-		indexer.set_value(true);
-		pros::delay(1000);
-		indexer.set_value(false);
-		pros::delay(500);
-	}
-}
-
-/**
- * Starts at the right half of the field, shoots preloads, spins roller to red.
- * \author aHalliday13
- */
-void redRightHalfDiscs() {
+void rightHalfDiscs() {
 	flywheel.move_velocity(550);
 	driveIn(14,30);
 	while (flywheel1.get_actual_velocity()<550) {}
@@ -444,46 +303,6 @@ void redRightHalfDiscs() {
 	rollerIntake.move_voltage(7000);
 	while (rollerOpR.get_hue() < 100){} // Rotate until blue
 	while (rollerOpR.get_hue() > 100){} // Rotate until red
-	rollerIntake.brake();
-}
-
-/**
- * Starts at the right half of the field, shoots preloads, spins roller to blue.
- * \author aHalliday13
- */
-void blueRightHalfDiscs() {
-	flywheel.move_velocity(550);
-	driveIn(14,30);
-	while (flywheel1.get_actual_velocity()<550) {}
-	for(int i=0;i<2;i++) {
-		indexer.set_value(true);
-		pros::delay(1000);
-		indexer.set_value(false);
-		pros::delay(500);
-	}
-	flywheel.brake();
-	driveTurn(110,30);
-	rollerIntake=127;
-	driveIn(-40,100);
-	driveTurn(-90,30);
-	rollerIntake.brake();
-	flywheel.move_velocity(500);
-	while (flywheel1.get_actual_velocity()<500) {}
-	for(int i=0;i<2;i++) {
-		indexer.set_value(true);
-		pros::delay(1000);
-		indexer.set_value(false);
-		pros::delay(500);
-	}
-	flywheel.brake();
-	rollerIntake=127;
-	driveTurn(-77,30);
-	driveIn(-60,150);
-	right_drive=-127;
-	pros::delay(500);
-	left_drive=-127;
-	while (rollerOpR.get_hue() > 100){} // Rotate until red
-	while (rollerOpR.get_hue() < 100){} // Rotate until blue
 	rollerIntake.brake();
 }
 
@@ -530,35 +349,7 @@ void skillsAuton() {
  * from where it left off.
  */
 void autonomous() {
-	return;
-	// Yes, I know it's bad practice to call functions from within a function, but it works, and this is unfortunatley the best way to organize it.
-	if (routeSelection==-1){
-		skillsAuton();
-	}
-	else if (routeSelection==0) {
-		redLeftHalfDiscs();
-	} 
-	else if (routeSelection==1) {
-		blueLeftHalfDiscs();
-	} 
-	else if (routeSelection==2) {
-		redRightHalfDiscs();
-	} 
-	else if (routeSelection==3) {
-		blueRightHalfDiscs();
-	} 
-	else if (routeSelection==4) {
-		redLeftHalfWP();
-	} 
-	else if (routeSelection==5) {
-		blueLeftHalfWP();
-	} 
-	else if (routeSelection==6) {
-		redLeftFullWP();
-	} 
-	else if (routeSelection==7) {
-		blueLeftFullWP();
-	}
+	leftHalfDiscs();
 }
 
 /**
