@@ -202,31 +202,32 @@ void competition_initialize() {
  * \author aHalliday13
  */
 void leftFullWP() {
-	flywheel.move_velocity(555);
-	left_drive=-100;
-	right_drive=-100;
-	pros::delay(500);
-	rollerIntake.move_relative(600,100);
-	left_drive.brake();
-	right_drive.brake();
-
-	driveIn(3);
-	driveTurn(-2,50);
-	driveIn(3);
-
-	while(abs(flywheel1.get_actual_velocity())<550){}
+	flywheel.move_velocity(520);
+	rollerIntake.move_relative(-600,100);
+	pros::delay(3000);
 	indexer.set_value(true);
-	pros::delay(1000);
-	indexer.set_value(false);
 	pros::delay(500);
-
-	while(abs(flywheel1.get_actual_velocity())<550){}
+	indexer.set_value(false);
+	pros::delay(1000);
 	indexer.set_value(true);
-	pros::delay(1000);
-	indexer.set_value(false);
 	pros::delay(500);
-
-	flywheel.brake();
+	indexer.set_value(false);
+	driveTurn(-110,40);
+	rollerIntake.move_velocity(600);
+	flywheel.move_velocity(100);
+	driveIn(-55,10000);
+	pros::delay(1200);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
+	pros::delay(1200);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
+	pros::delay(1200);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
 }
 
 /**
@@ -269,41 +270,22 @@ void leftHalfDiscs() {
  * \author aHalliday13
  */
 void rightHalfDiscs() {
-	flywheel.move_velocity(550);
-	driveIn(14,30);
-	while (flywheel1.get_actual_velocity()<550) {}
-	for(int i=0;i<2;i++) {
-		indexer.set_value(true);
-		pros::delay(1000);
-		indexer.set_value(false);
-		pros::delay(500);
-	}
-	flywheel.brake();
-	driveTurn(110,30);
-	rollerIntake=127;
-	driveIn(-40,100);
-	driveTurn(-85,30);
-	rollerIntake.brake();
-	flywheel.move_velocity(500);
-	while (flywheel1.get_actual_velocity()<500) {}
-	for(int i=0;i<2;i++) {
-		indexer.set_value(true);
-		pros::delay(1000);
-		indexer.set_value(false);
-		pros::delay(500);
-	}
-	flywheel.brake();
-	rollerIntake=127;
-	driveTurn(-77,30);
-	driveIn(-60,150);
-	rollerIntake.brake();
-	right_drive=-127;
+	flywheel.move_velocity(595);
+	pros::delay(3000);
+	indexer.set_value(true);
 	pros::delay(500);
-	left_drive=-127;
-	rollerIntake.move_voltage(7000);
-	while (rollerOpR.get_hue() < 100){} // Rotate until blue
-	while (rollerOpR.get_hue() > 100){} // Rotate until red
-	rollerIntake.brake();
+	indexer.set_value(false);
+	pros::delay(1000);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	flywheel.brake();
+	driveTurn(-97,40);
+	driveIn(-26);
+	driveTurn(90,40);
+	left_drive.move_relative(-300,100);
+	right_drive.move_relative(-300,100);
+	rollerIntake.move_relative(-600,600);
 }
 
 /**
@@ -349,7 +331,7 @@ void skillsAuton() {
  * from where it left off.
  */
 void autonomous() {
-	leftHalfDiscs();
+	leftFullWP();
 }
 
 /**
