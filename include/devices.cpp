@@ -31,10 +31,6 @@ Motor intake2(5,E_MOTOR_GEAR_GREEN);
 // Both intake motors
 Motor_Group rollerIntake({intake1,intake2});
 
-// Optical sensors for detecting roller state
-Optical rollerOpR(12);
-Optical rollerOpL(13);
-
 // Inertial sensor on the center of rotation
 Imu inertial(15);
 

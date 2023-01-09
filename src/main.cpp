@@ -34,30 +34,18 @@ float flywheelVelocity=0;
  * \param maxVoltage
  * 		  The maximum voltage to send to the motors. This value should be between
  * 		  0mV and 12000mV.
- * \param kP 
- * 		  The proportional constant for the PID loop. This should be a positive 
- * 		  number. This will be assigned a default value. If you need to change 
- * 		  this at any point, you should change the default, not the value passed
- * 		  to the function.
- * \param kI
- * 		  The integral constant for the PID loop. This should be a positive 
- * 		  number. This will be assigned a default value. If you need to change 
- * 		  this at any point, you should change the default, not the value passed
- * 		  to the function.
- * \param kD
- * 		  The derivative constant for the PID loop. This should be a positive 
- * 		  number. This will be assigned a default value. If you need to change 
- * 		  this at any point, you should change the default, not the value passed
- * 		  to the function.
- * \param unitsPerInch
- * 		  The number of encoder units per inch of travel. This value is specific
- * 		  to each robot, and should be set to a default value. If you need to change
- * 		  this at any point, you should change the default, not the value passed to
- * 		  the function.
  * \return Nothing
  * \author aHalliday13
  */
-void driveIn(float distance, float maxVoltage=12000, float kP=30, float kI=.05, float kD=500, float unitsPerInch=57.9184632727) {
+void driveIn(float distance, float maxVoltage=12000) {
+
+
+	// Define all our constants
+	const float kP=30;
+	const float kI=.05;
+	const float kD=500;
+	const float unitsPerInch=57.9184632727;
+
 	// 2500 units = 48.5 inches
 	float error,lastError,integral,derivative,power,tweak=0;
 	distance=distance*unitsPerInch;
@@ -99,6 +87,8 @@ void driveIn(float distance, float maxVoltage=12000, float kP=30, float kI=.05, 
 	left_drive.brake();
 	right_drive.brake();
 }
+
+
 
 /**
  * Turns the robot chasis a set number of degrees
@@ -149,13 +139,12 @@ void initialize() {
 	flywheel1.set_brake_mode(E_MOTOR_BRAKE_COAST);
 	flywheel2.set_brake_mode(E_MOTOR_BRAKE_COAST);
 	
-	inertial.reset(true);
+	inertial.reset();
+	delay(3000);
 	inertial.tare();
 
-	rollerOpL.set_led_pwm(100);
-	rollerOpR.set_led_pwm(100);
 
-	/*
+
 	// Autonomous selection menu
 	while (true) {
 		master.print(0, 0, "Route %d", routeSelection);
@@ -173,7 +162,7 @@ void initialize() {
 			master.clear_line(0);
 			break;
 		}
-	}*/
+	}
 }
 
 /**
@@ -202,42 +191,34 @@ void competition_initialize() {
  * \author aHalliday13
  */
 void leftFullWP() {
-	flywheel.move_velocity(520);
+	flywheel.move_velocity(560);
 	rollerIntake.move_relative(-600,100);
-	pros::delay(3000);
+	pros::delay(2000);
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
-	pros::delay(1000);
+	pros::delay(1200);
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
-	driveTurn(-110,40);
-	rollerIntake.move_velocity(600);
-	flywheel.move_velocity(100);
-	driveIn(-55,10000);
-	pros::delay(1200);
-	indexer.set_value(true);
-	pros::delay(250);
-	indexer.set_value(false);
-	pros::delay(1200);
-	indexer.set_value(true);
-	pros::delay(250);
-	indexer.set_value(false);
-	pros::delay(1200);
-	indexer.set_value(true);
-	pros::delay(250);
-	indexer.set_value(false);
+	flywheel.brake();
+	driveTurn(-92,40);
+	driveIn(-43);
+	driveTurn(-27,40);
+	driveIn(-40);
 }
 
 /**
  * Starts at the left half of the field, spins roller, shoots preloads, goes to
  * center of field, grabs discs on the way, and then fires them into the goal.
+ * Confirmed working as of Jan 7, 2023
  * \author aHalliday13
  */
 void leftHalfDiscs() {
-	flywheel.move_velocity(520);
+	flywheel.move_velocity(5750);
 	rollerIntake.move_relative(-600,100);
+	delay(500);
+	driveTurn(-2,30);
 	pros::delay(3000);
 	indexer.set_value(true);
 	pros::delay(500);
@@ -248,9 +229,9 @@ void leftHalfDiscs() {
 	indexer.set_value(false);
 	driveTurn(-110,40);
 	rollerIntake.move_velocity(600);
-	flywheel.move_velocity(470);
-	driveIn(-55,10000);
-	driveTurn(88.5,30);
+	flywheel.move_velocity(510);
+	driveIn(-52,10000);
+	driveTurn(92,30);
 	pros::delay(1200);
 	indexer.set_value(true);
 	pros::delay(250);
@@ -267,10 +248,11 @@ void leftHalfDiscs() {
 
 /**
  * Starts at the right half of the field, shoots preloads, spins roller.
+ * Confirmed working as of Jan 7, 2023
  * \author aHalliday13
  */
 void rightHalfDiscs() {
-	flywheel.move_velocity(595);
+	flywheel.move_velocity(600);
 	pros::delay(3000);
 	indexer.set_value(true);
 	pros::delay(500);
@@ -294,28 +276,44 @@ void rightHalfDiscs() {
  * \author aHalliday13
  */
 void skillsAuton() {
-	flywheel.move_velocity(550);
+	flywheel.move_velocity(580);
+	right_drive.move_voltage(-12000);
+	rollerIntake.move_relative(-1200,100);
 	pros::delay(3000);
-	for (int i=0;i<2;i++) {
-		indexer.set_value(true);
-		pros::delay(1000);
-		indexer.set_value(false);
-		pros::delay(500);
-	}
-	flywheel.brake();
-
-	driveTurn(10,75);
-	pros::delay(1000);
-
-	left_drive=-100;
-	right_drive=-100;
-	pros::delay(1000);
-	left_drive.brake();
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
 	right_drive.brake();
-
-	driveIn(5,50);
-	driveTurn(45,90);
+	pros::delay(2000);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	driveTurn(-117,20);
+	rollerIntake.move_velocity(600);
+	flywheel.move_velocity(490);
+	driveIn(-48,10000);
+	driveTurn(92,20);
+	pros::delay(1200);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
+	pros::delay(1200);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
+	pros::delay(1200);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
+	driveTurn(90,20);
+	driveIn(-30);
+	driveTurn(45,20);
+	driveIn(-10);
+	delay(1000);
 	expansion1.set_value(true);
+	delay(1000);
+	driveTurn(-90,20);
+	delay(1000);
 	expansion2.set_value(true);
 }
 
@@ -331,7 +329,18 @@ void skillsAuton() {
  * from where it left off.
  */
 void autonomous() {
-	leftFullWP();
+	if (routeSelection==1){
+		leftHalfDiscs();
+	}
+	else if (routeSelection==2){
+		rightHalfDiscs();
+	}
+	else if (routeSelection==3){
+		leftFullWP();
+	}
+	else if (routeSelection==4){
+		skillsAuton();
+	}
 }
 
 /**
