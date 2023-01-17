@@ -38,8 +38,6 @@ float flywheelVelocity=0;
  * \author aHalliday13
  */
 void driveIn(float distance, float maxVoltage=12000) {
-
-
 	// Define all our constants
 	const float kP=30;
 	const float kI=.05;
@@ -87,8 +85,6 @@ void driveIn(float distance, float maxVoltage=12000) {
 	left_drive.brake();
 	right_drive.brake();
 }
-
-
 
 /**
  * Turns the robot chasis a set number of degrees
@@ -142,8 +138,6 @@ void initialize() {
 	inertial.reset();
 	delay(3000);
 	inertial.tare();
-
-
 
 	// Autonomous selection menu
 	while (true) {
@@ -215,28 +209,31 @@ void leftFullWP() {
  * \author aHalliday13
  */
 void leftHalfDiscs() {
-	flywheel.move_velocity(5750);
+	flywheel.move_velocity(525);
 	rollerIntake.move_relative(-600,100);
-	delay(500);
-	driveTurn(-2,30);
-	pros::delay(3000);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
 	pros::delay(1000);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
-	driveTurn(-110,40);
-	rollerIntake.move_velocity(600);
-	flywheel.move_velocity(510);
-	driveIn(-52,10000);
-	driveTurn(92,30);
+	driveTurn(-120,40);
+	driveIn(-24);
+	driveTurn(105,40);
 	pros::delay(1200);
 	indexer.set_value(true);
 	pros::delay(250);
 	indexer.set_value(false);
+	pros::delay(1700);
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
+	driveTurn(-90,40);
+	rollerIntake.move_velocity(600);
+	flywheel.move_velocity(500);
+	driveIn(-26);
+	driveTurn(85,30);
 	pros::delay(1200);
+	rollerIntake.brake();
+	indexer.set_value(true);
+	pros::delay(250);
+	indexer.set_value(false);
+	pros::delay(1500);
 	indexer.set_value(true);
 	pros::delay(250);
 	indexer.set_value(false);
@@ -253,7 +250,11 @@ void leftHalfDiscs() {
  */
 void rightHalfDiscs() {
 	flywheel.move_velocity(600);
-	pros::delay(3000);
+	rollerIntake.move_velocity(600);
+	driveIn(-26);
+	rollerIntake.brake();
+	driveTurn(-145,40);
+	pros::delay(1000);
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
@@ -261,13 +262,16 @@ void rightHalfDiscs() {
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
-	flywheel.brake();
-	driveTurn(-97,40);
+	pros::delay(1000);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	driveTurn(-90,40);
 	driveIn(-26);
-	driveTurn(90,40);
-	left_drive.move_relative(-300,100);
-	right_drive.move_relative(-300,100);
-	rollerIntake.move_relative(-600,600);
+	driveTurn(35,40);
+	left_drive.move_velocity(-600);
+	right_drive.move_velocity(-600);
+	rollerIntake.move_relative(-600,100);
 }
 
 /**
@@ -390,15 +394,6 @@ void opcontrol() {
 			}
 		}
 		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R1)){
-			// %75
-			if (flywheel1.get_target_velocity()==450) {
-				flywheel.brake();
-			}
-			else {
-				flywheel.move_velocity(450);
-			}
-		}
-		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R2)){
 			// %65
 			if (flywheel1.get_target_velocity()==390) {
 				flywheel.brake();
@@ -407,12 +402,21 @@ void opcontrol() {
 				flywheel.move_velocity(390);
 			}
 		}
+		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R2)){
+			// %55
+			if (flywheel1.get_target_velocity()==330) {
+				flywheel.brake();
+			}
+			else {
+				flywheel.move_velocity(330);
+			}
+		}
 
 		// Fire the indexer
 		indexer.set_value(master.get_digital(E_CONTROLLER_DIGITAL_X));
 
 		// Trigger the expansion release
-		expansion1.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN)||master.get_digital(E_CONTROLLER_DIGITAL_RIGHT));
-		expansion2.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN)||master.get_digital(E_CONTROLLER_DIGITAL_LEFT));
+		expansion1.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN)||master.get_digital(E_CONTROLLER_DIGITAL_LEFT));
+		expansion2.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN)||master.get_digital(E_CONTROLLER_DIGITAL_RIGHT));
 	}
 }
