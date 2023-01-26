@@ -209,26 +209,26 @@ void leftFullWP() {
  * \author aHalliday13
  */
 void leftHalfDiscs() {
-	flywheel.move_velocity(525);
+	// pls dont delte my code its very important
+	flywheel.move_velocity(530);
 	rollerIntake.move_relative(-600,100);
 	pros::delay(1000);
 	driveTurn(-120,40);
 	driveIn(-24);
-	driveTurn(105,40);
+	driveTurn(100,40);
 	pros::delay(1200);
 	indexer.set_value(true);
 	pros::delay(250);
 	indexer.set_value(false);
-	pros::delay(1700);
+	pros::delay(1200);
 	indexer.set_value(true);
 	pros::delay(250);
 	indexer.set_value(false);
+	flywheel.move_velocity(600);
 	driveTurn(-90,40);
 	rollerIntake.move_velocity(600);
-	flywheel.move_velocity(500);
 	driveIn(-26);
 	driveTurn(85,30);
-	pros::delay(1200);
 	rollerIntake.brake();
 	indexer.set_value(true);
 	pros::delay(250);
@@ -237,7 +237,7 @@ void leftHalfDiscs() {
 	indexer.set_value(true);
 	pros::delay(250);
 	indexer.set_value(false);
-	pros::delay(1200);
+	pros::delay(1300);
 	indexer.set_value(true);
 	pros::delay(250);
 	indexer.set_value(false);
@@ -250,7 +250,7 @@ void leftHalfDiscs() {
  */
 void rightHalfDiscs() {
 	flywheel.move_velocity(600);
-	rollerIntake.move_velocity(600);
+	rollerIntake.move_velocity(500);
 	driveIn(-26);
 	rollerIntake.brake();
 	driveTurn(-145,40);
@@ -266,12 +266,13 @@ void rightHalfDiscs() {
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
-	driveTurn(-90,40);
+	driveTurn(-70,40);
 	driveIn(-26);
-	driveTurn(35,40);
+	driveTurn(30,40);
 	left_drive.move_velocity(-600);
 	right_drive.move_velocity(-600);
-	rollerIntake.move_relative(-600,100);
+	pros::delay(1000);
+	rollerIntake.move_relative(-1200,100);
 }
 
 /**
