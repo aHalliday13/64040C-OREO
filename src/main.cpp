@@ -205,17 +205,15 @@ void leftFullWP() {
 /**
  * Starts at the left half of the field, spins roller, shoots preloads, goes to
  * center of field, grabs discs on the way, and then fires them into the goal.
- * Confirmed working as of Jan 7, 2023
  * \author aHalliday13
  */
 void leftHalfDiscs() {
-	// pls dont delte my code its very important
-	flywheel.move_velocity(530);
+	flywheel.move_velocity(520);
 	rollerIntake.move_relative(-600,100);
 	pros::delay(1000);
-	driveTurn(-120,40);
+	driveTurn(-123,40);
 	driveIn(-24);
-	driveTurn(100,40);
+	driveTurn(107,40);
 	pros::delay(1200);
 	indexer.set_value(true);
 	pros::delay(250);
@@ -224,10 +222,10 @@ void leftHalfDiscs() {
 	indexer.set_value(true);
 	pros::delay(250);
 	indexer.set_value(false);
-	flywheel.move_velocity(600);
-	driveTurn(-90,40);
-	rollerIntake.move_velocity(600);
-	driveIn(-26);
+	flywheel.move_velocity(550);
+	driveTurn(-95,40);
+	rollerIntake.move_velocity(550);
+	driveIn(-30,10000);
 	driveTurn(85,30);
 	rollerIntake.brake();
 	indexer.set_value(true);
@@ -245,7 +243,6 @@ void leftHalfDiscs() {
 
 /**
  * Starts at the right half of the field, shoots preloads, spins roller.
- * Confirmed working as of Jan 7, 2023
  * \author aHalliday13
  */
 void rightHalfDiscs() {
