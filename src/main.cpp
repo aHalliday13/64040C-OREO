@@ -101,20 +101,49 @@ void driveIn(float distance, float maxVoltage=12000) {
  * \return Nothing
  * \author aHalliday13
  */
-void driveTurn(float rotation, float velocity) {
-	// Tare the inertial sensor
-	inertial.tare();
+void driveTurn(float rotation, float maxVoltage=12000) {
+	// Define all our constants
+	const float kP=200;
+	const float kI=.5;
+	const float kD=900;
+	const float startRotation=inertial.get_rotation();
 
-	// Start turning in the appropriate direction
-	left_drive.move_velocity(rotation<0 ? -1*velocity : velocity);
-	right_drive.move_velocity(rotation>0 ? -1*velocity : velocity);
+	// 2500 units = 48.5 inches
+	float error,lastError,integral,derivative,power;
+	error=rotation;
 
-	// Wait for the inertial sensor to reach the desired rotation
-	while (abs(inertial.get_rotation())<abs(rotation)) {}
-	
-	// Stop the motors
+	while(abs(error)>1) {
+		// Calculate the error
+		error=rotation-(inertial.get_rotation()-startRotation);
+		
+		// Update the integral
+		integral=integral+error;
+		
+		// Calculate the derivative
+		derivative=error-lastError;
+		lastError=error;
+		
+		// Calculate the power, apply power
+		power=error*kP+integral*kI+derivative*kD;
+
+		// Cap the power
+		if(abs(power)>maxVoltage) {
+			power= power<0 ? -maxVoltage : maxVoltage;
+		}
+
+		left_drive.move_voltage(power);
+		right_drive.move_voltage(-power);
+		
+		// Wait a set ammount of time to ensure that dT remains fairly constant
+		pros::delay(15);
+	}
 	left_drive.brake();
 	right_drive.brake();
+}
+
+void driveETurn(float clicks, float velocity){
+	left_drive.move_relative(clicks, velocity);
+	right_drive.move_relative(clicks,velocity);
 }
 
 /**
@@ -208,37 +237,43 @@ void leftFullWP() {
  * \author aHalliday13
  */
 void leftHalfDiscs() {
-	flywheel.move_velocity(520);
-	rollerIntake.move_relative(-600,100);
-	pros::delay(1000);
-	driveTurn(-123,40);
-	driveIn(-24);
-	driveTurn(107,40);
-	pros::delay(1200);
+	flywheel.move_velocity(530);
+	left_drive.move_relative(-150,50);
+	right_drive.move_relative(-150,50);
+	pros::delay(200);
+	rollerIntake.move_relative(-400,200);
+	driveTurn(-123);
+	driveIn(-15);
+	driveTurn(118);
+	pros::delay(1500);
 	indexer.set_value(true);
-	pros::delay(250);
-	indexer.set_value(false);
-	pros::delay(1200);
-	indexer.set_value(true);
-	pros::delay(250);
-	indexer.set_value(false);
-	flywheel.move_velocity(550);
-	driveTurn(-95,40);
-	rollerIntake.move_velocity(550);
-	driveIn(-30,10000);
-	driveTurn(85,30);
-	rollerIntake.brake();
-	indexer.set_value(true);
-	pros::delay(250);
+	pros::delay(500);
 	indexer.set_value(false);
 	pros::delay(1500);
 	indexer.set_value(true);
-	pros::delay(250);
+	pros::delay(500);
 	indexer.set_value(false);
-	pros::delay(1300);
+	pros::delay(500);
+	flywheel.move_velocity(480);
+	driveTurn(-111);
+	rollerIntake.move_voltage(12000);
+	driveIn(-34);
+	driveTurn(90);
+	driveIn(6);
+	rollerIntake.brake();
+	pros::delay(1500);
 	indexer.set_value(true);
-	pros::delay(250);
+	pros::delay(500);
 	indexer.set_value(false);
+	pros::delay(1500);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	pros::delay(1500);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	pros::delay(500);
 }
 
 /**
@@ -246,11 +281,11 @@ void leftHalfDiscs() {
  * \author aHalliday13
  */
 void rightHalfDiscs() {
-	flywheel.move_velocity(600);
+	flywheel.move_velocity(500);
 	rollerIntake.move_velocity(500);
 	driveIn(-26);
 	rollerIntake.brake();
-	driveTurn(-145,40);
+	driveTurn(-145);
 	pros::delay(1000);
 	indexer.set_value(true);
 	pros::delay(500);
@@ -263,9 +298,9 @@ void rightHalfDiscs() {
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
-	driveTurn(-70,40);
+	driveTurn(-70);
 	driveIn(-26);
-	driveTurn(30,40);
+	driveTurn(30);
 	left_drive.move_velocity(-600);
 	right_drive.move_velocity(-600);
 	pros::delay(1000);
@@ -278,45 +313,28 @@ void rightHalfDiscs() {
  * \author aHalliday13
  */
 void skillsAuton() {
-	flywheel.move_velocity(580);
-	right_drive.move_voltage(-12000);
-	rollerIntake.move_relative(-1200,100);
-	pros::delay(3000);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
+	left_drive.move_relative(-150,50);
+	right_drive.move_relative(-150,50);
+	pros::delay(200);
+	rollerIntake.move_relative(-400,200);
+	pros::delay(300);
+	driveIn(15);
+	driveTurn(90);
+	left_drive.move_velocity(-150);
+	right_drive.move_velocity(-150);
+	pros::delay(6000);
+	rollerIntake.move_relative(-700,200);
+	left_drive.brake();
 	right_drive.brake();
-	pros::delay(2000);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
-	driveTurn(-117,20);
-	rollerIntake.move_velocity(600);
-	flywheel.move_velocity(490);
-	driveIn(-48,10000);
-	driveTurn(92,20);
-	pros::delay(1200);
-	indexer.set_value(true);
-	pros::delay(250);
-	indexer.set_value(false);
-	pros::delay(1200);
-	indexer.set_value(true);
-	pros::delay(250);
-	indexer.set_value(false);
-	pros::delay(1200);
-	indexer.set_value(true);
-	pros::delay(250);
-	indexer.set_value(false);
-	driveTurn(90,20);
-	driveIn(-30);
-	driveTurn(45,20);
-	driveIn(-10);
-	delay(1000);
-	expansion1.set_value(true);
-	delay(1000);
-	driveTurn(-90,20);
+	driveIn(15);
+	left_drive.move_velocity(-10);
+	right_drive.move_velocity(10);
 	delay(1000);
 	expansion2.set_value(true);
+	delay(1000);
+	expansion1.set_value(true);
+	left_drive.brake();
+	right_drive.brake();
 }
 
 /**
