@@ -40,3 +40,6 @@ ADIPort indexer(1,E_ADI_DIGITAL_OUT);
 // Expansion release triggers
 ADIPort expansion1(2,E_ADI_DIGITAL_OUT);
 ADIPort expansion2(3,E_ADI_DIGITAL_OUT);
+
+// Front flap for forcing discs up at an angle after they leave the flywheel
+ADIPort flap(8,E_ADI_DIGITAL_OUT);

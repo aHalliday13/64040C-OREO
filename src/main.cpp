@@ -12,6 +12,9 @@ using namespace pros;
  *
  * You turned the band saw into a spoon!
  * - What happens when you cut steel on the bandsaw
+ * 
+ * The field giveth and the field taketh
+ * - Benny Boi finding ramdom parts on the field
 */
 
 // Our Left Y-Axis Curve Function. We use a define because it makes the source code more readable, and saves RAM at runtime instead of a variable.
@@ -103,16 +106,16 @@ void driveIn(float distance, float maxVoltage=12000) {
  */
 void driveTurn(float rotation, float maxVoltage=12000) {
 	// Define all our constants
-	const float kP=200;
+	const float kP=175;
 	const float kI=.5;
-	const float kD=900;
+	const float kD=1000;
 	const float startRotation=inertial.get_rotation();
 
 	// 2500 units = 48.5 inches
 	float error,lastError,integral,derivative,power;
 	error=rotation;
 
-	while(abs(error)>1) {
+	while(abs(error)>1.5) {
 		// Calculate the error
 		error=rotation-(inertial.get_rotation()-startRotation);
 		
@@ -136,14 +139,22 @@ void driveTurn(float rotation, float maxVoltage=12000) {
 		
 		// Wait a set ammount of time to ensure that dT remains fairly constant
 		pros::delay(15);
+		// Print out the error, integral, derivative, and power	
+		printf("Error: %f, Integral: %f, Derivative: %f, Power: %f\n",error,integral,derivative,power);
 	}
 	left_drive.brake();
 	right_drive.brake();
 }
 
-void driveETurn(float clicks, float velocity){
-	left_drive.move_relative(clicks, velocity);
-	right_drive.move_relative(clicks,velocity);
+void flywheelBangBang(float velocity) {
+	while (true){
+		if((flywheel1.get_actual_velocity()+flywheel2.get_actual_velocity())<(2*velocity)) {
+			flywheel.move_voltage(flywheel1.get_voltage()+1000);
+		}
+		else if ((flywheel1.get_actual_velocity()+flywheel2.get_actual_velocity())>(2*velocity)){
+			flywheel.move_voltage(flywheel1.get_voltage()-1000);
+		}
+	}
 }
 
 /**
@@ -165,8 +176,10 @@ void initialize() {
 	flywheel2.set_brake_mode(E_MOTOR_BRAKE_COAST);
 	
 	inertial.reset();
-	delay(3000);
+	while (inertial.is_calibrating());
+	pros::delay(500);
 	inertial.tare();
+	pros::delay(500);
 
 	// Autonomous selection menu
 	while (true) {
@@ -237,43 +250,46 @@ void leftFullWP() {
  * \author aHalliday13
  */
 void leftHalfDiscs() {
-	flywheel.move_velocity(530);
+	flywheel.move_velocity(580);
+	pros::delay(4000);
+	indexer.set_value(true);
+	pros::delay(1000);
+	flywheel.move_velocity(570);
+	indexer.set_value(false);
+	pros::delay(2000);
+	indexer.set_value(true);
+	pros::delay(1000);
+	indexer.set_value(false);
+	flywheel.move_velocity(490);
+
 	left_drive.move_relative(-150,50);
 	right_drive.move_relative(-150,50);
 	pros::delay(200);
-	rollerIntake.move_relative(-400,200);
-	driveTurn(-123);
-	driveIn(-15);
-	driveTurn(118);
-	pros::delay(1500);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
-	pros::delay(1500);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
-	pros::delay(500);
-	flywheel.move_velocity(480);
-	driveTurn(-111);
-	rollerIntake.move_voltage(12000);
-	driveIn(-34);
-	driveTurn(90);
-	driveIn(6);
+	rollerIntake.move_relative(-400,100);
+	pros::delay(2000);
+	left_drive.brake();
+	right_drive.brake();
+
+	left_drive.move_relative(250,50);
+	right_drive.move_relative(250,50);
+	pros::delay(700);
+	driveTurn(-117);
+	rollerIntake.move_velocity(200);
+	driveIn(-40);
+	driveTurn(100);
 	rollerIntake.brake();
-	pros::delay(1500);
+	pros::delay(1000);
 	indexer.set_value(true);
-	pros::delay(500);
+	pros::delay(1000);
 	indexer.set_value(false);
-	pros::delay(1500);
+	pros::delay(1000);
 	indexer.set_value(true);
-	pros::delay(500);
+	pros::delay(1000);
 	indexer.set_value(false);
-	pros::delay(1500);
+	pros::delay(1000);
 	indexer.set_value(true);
-	pros::delay(500);
+	pros::delay(1000);
 	indexer.set_value(false);
-	pros::delay(500);
 }
 
 /**
@@ -281,12 +297,8 @@ void leftHalfDiscs() {
  * \author aHalliday13
  */
 void rightHalfDiscs() {
-	flywheel.move_velocity(500);
-	rollerIntake.move_velocity(500);
-	driveIn(-26);
-	rollerIntake.brake();
-	driveTurn(-145);
-	pros::delay(1000);
+	flywheel.move_velocity(600);
+	pros::delay(5000);
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
@@ -294,17 +306,18 @@ void rightHalfDiscs() {
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
-	pros::delay(1000);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
-	driveTurn(-70);
-	driveIn(-26);
-	driveTurn(30);
+	left_drive.move_relative(-420,50);
+	right_drive.move_relative(420,50);
+	pros::delay(2000);
+	driveIn(15);
+	driveTurn(-90);
 	left_drive.move_velocity(-600);
 	right_drive.move_velocity(-600);
 	pros::delay(1000);
-	rollerIntake.move_relative(-1200,100);
+	rollerIntake.move_relative(-400,100);
+	pros::delay(1000);
+	left_drive.brake();
+	right_drive.brake();
 }
 
 /**
@@ -318,23 +331,35 @@ void skillsAuton() {
 	pros::delay(200);
 	rollerIntake.move_relative(-400,200);
 	pros::delay(300);
-	driveIn(15);
+	left_drive.move_relative(1500,50);
+	right_drive.move_relative(1500,50);
+	pros::delay(2000);
+	rollerIntake.move_velocity(200);
 	driveTurn(90);
-	left_drive.move_velocity(-150);
-	right_drive.move_velocity(-150);
-	pros::delay(6000);
-	rollerIntake.move_relative(-700,200);
-	left_drive.brake();
-	right_drive.brake();
-	driveIn(15);
-	left_drive.move_velocity(-10);
-	right_drive.move_velocity(10);
-	delay(1000);
-	expansion2.set_value(true);
-	delay(1000);
+	left_drive.move_relative(-1500,50);
+	right_drive.move_relative(-1500,50);
+	pros::delay(2000);
+	left_drive.move_relative(1200,50);
+	right_drive.move_relative(1200,50);
+	pros::delay(2000);
+	left_drive.move_relative(-200,50);
+	right_drive.move_relative(200,50);
+	pros::delay(2000);
 	expansion1.set_value(true);
-	left_drive.brake();
-	right_drive.brake();
+	left_drive.move_relative(-100,50);
+	right_drive.move_relative(100,50);
+	pros::delay(2000);
+	expansion2.set_value(true);
+	driveIn(-20);
+	/*
+	driveIn(110,9500);
+	driveTurn(135);
+	left_drive.move_relative(-1200,50);
+	right_drive.move_relative(-1200,50);
+	pros::delay(2000);
+	left_drive.move_relative(1200,50);
+	right_drive.move_relative(1200,50);
+	pros::delay(2000);*/
 }
 
 /**
@@ -361,6 +386,9 @@ void autonomous() {
 	else if (routeSelection==4){
 		skillsAuton();
 	}
+	else if (routeSelection==-1){
+		flywheelBangBang(390);
+	}
 }
 
 /**
@@ -378,6 +406,9 @@ void autonomous() {
  */
 void opcontrol() {
 	while (true) {
+		// Print important stats to the controller screen
+		master.print(0,0,"DT:%.0f FT:%.0f FV:%.0f     ",((left_front.get_temperature()+right_front.get_temperature()+left_rear.get_temperature()+right_rear.get_temperature())/4),((flywheel1.get_temperature()+flywheel2.get_temperature())/2),round(flywheel1.get_target_velocity()/6));
+		
 		// Drivetrain control functions
 		left_drive = (CUBERTCTRL_LY*(invertDrivetrainTeleOp ? -1 : 1) + master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
 		right_drive = (CUBERTCTRL_LY*(invertDrivetrainTeleOp ? -1 : 1) - master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
@@ -385,6 +416,11 @@ void opcontrol() {
 		// Invert the drivetrain if the driver requests it
 		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_A)){
 			invertDrivetrainTeleOp= !invertDrivetrainTeleOp;
+		}
+
+		// Toggle the flap if the driver presses Y
+		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_Y)){
+			flap.set_value(!flap.get_value());
 		}
 
 		// Set the intake/ roller velocity
@@ -401,12 +437,12 @@ void opcontrol() {
 			}
 		}
 		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_L2)){
-			// %85
-			if (flywheel1.get_target_velocity()==510) {
+			// %68
+			if (flywheel1.get_target_velocity()==410) {
 				flywheel.brake();
 			}
 			else {
-				flywheel.move_velocity(510);
+				flywheel.move_velocity(410);
 			}
 		}
 		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R1)){
@@ -419,12 +455,12 @@ void opcontrol() {
 			}
 		}
 		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R2)){
-			// %55
-			if (flywheel1.get_target_velocity()==330) {
+			// %66
+			if (flywheel1.get_target_velocity()==400) {
 				flywheel.brake();
 			}
 			else {
-				flywheel.move_velocity(330);
+				flywheel.move_velocity(400);
 			}
 		}
 
