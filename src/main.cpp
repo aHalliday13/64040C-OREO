@@ -96,63 +96,6 @@ void driveIn(float distance, float maxVoltage=12000) {
 }
 
 /**
- * #DEPRICATED, WILL BE DELTED WHEN ALL REFRENCES ARE REMOVED!
- * Turns the robot chasis a set number of degrees. Uses the flywheel as the front
- * of the robot.
- * 
- * \param rotation
- * 		  The number of degrees the robot should turn, bound [0,360), positive
- * 		  values turn clockwise, negative values turn anti-clockwise
- * 
- * \param velocity
- * 		  How fast to turn. For best results, go as slow as time will allow.
- * 		  This should always be a positive number. Bound (0,100] for E_MOTOR_GEARSET_36,
- * 		  (0,200] for E_MOTOR_GEARSET_18, and (0,600] for E_MOTOR_GEARSET_6	
- * \return Nothing
- * \author aHalliday13
- */
-void driveTurn(float rotation, float maxVoltage=12000) {
-	// Define all our constants
-	const float kP=175;
-	const float kI=.5;
-	const float kD=1000;
-	const float startRotation=inertial.get_rotation();
-
-	// 2500 units = 48.5 inches
-	float error,lastError,integral,derivative,power;
-	error=rotation;
-
-	while(abs(error)>1.5) {
-		// Calculate the error
-		error=rotation-(inertial.get_rotation()-startRotation);
-		
-		// Update the integral
-		integral=integral+error;
-		
-		// Calculate the derivative
-		derivative=error-lastError;
-		lastError=error;
-		
-		// Calculate the power, apply power
-		power=error*kP+integral*kI+derivative*kD;
-
-		// Cap the power
-		if(abs(power)>maxVoltage) {
-			power= power<0 ? -maxVoltage : maxVoltage;
-		}
-
-		left_drive.move_voltage(power);
-		right_drive.move_voltage(-power);
-		
-		// Wait a set ammount of time to ensure that dT remains fairly constant
-		pros::delay(15);
-		// Print out the error, integral, derivative, and power	
-	}
-	left_drive.brake();
-	right_drive.brake();
-}
-
-/**
  * Turns the robot chasis a set number of degrees.
  * Uses the flywheel as the front of the robot.
  * Utilizes the motor encoders instead of the inertial sensor for more precision.
