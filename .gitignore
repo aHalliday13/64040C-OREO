@@ -9,14 +9,9 @@
 # PROS
 bin/
 .vscode/
+.cache/
 compile_commands.json
 temp.log
 temp.errors
 *.ini
 .d/
-
-# Some testing output files
-TestOutput/
-
-# Compression shenanigans
-.DS_Store

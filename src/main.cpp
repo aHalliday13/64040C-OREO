@@ -15,16 +15,21 @@ using namespace pros;
  * 
  * The field giveth and the field taketh
  * - Benny Boi finding ramdom parts on the field
+ * 
+ * THE BEES!
+ * - Zach Bruno while having a complete exestential crisis about bees in scuba gear
+ * 
+ * All I can taste is the bittering agent
+ * - Benny Boi after licking a soda can that was sprayed with canned air
+ * 
+ * Have you ever licked nintendo switch cartridges? I've licked all of mine.
+ * - Maximo
 */
 
 // Our Left Y-Axis Curve Function. We use a define because it makes the source code more readable, and saves RAM at runtime instead of a variable.
 #define CUBERTCTRL_LY (master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)/abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y))*(cbrt(abs(master.get_analog(E_CONTROLLER_ANALOG_LEFT_Y)) - 63.5) + 3.989556)*15.9148)
-// TeleOp inversion, allows the driver to flip the front and back of the robot to make driving easier.
-bool invertDrivetrainTeleOp=true;
 // Autonomous selection variable
 int routeSelection=0;
-// Flywheel velocity variable so that we can return to the same velocity after a shot
-float flywheelVelocity=0;
 
 /**
  * Drive a set number of inches forward. Uses the flywheel as the front of the robot.
@@ -56,7 +61,7 @@ void driveIn(float distance, float maxVoltage=12000) {
 	// Reset the encoders
 	left_drive.tare_position();
 	right_drive.tare_position();
-
+	printf("power,error*kP,integral*kI,derivative*kD\n");
 	while(abs(error)>15) {
 		leftEncoderValues=left_drive.get_positions();
 		rightEncoderValues=right_drive.get_positions();
@@ -84,14 +89,16 @@ void driveIn(float distance, float maxVoltage=12000) {
 		
 		// Wait a set ammount of time to ensure that dT remains fairly constant
 		pros::delay(15);
+		printf("%f,%f,%f,%f\n",power,error*kP,integral*kI,derivative*kD);
 	}
 	left_drive.brake();
 	right_drive.brake();
 }
 
 /**
- * Turns the robot chasis a set number of degrees
- * Uses the flywheel as the front of the robot
+ * #DEPRICATED, WILL BE DELTED WHEN ALL REFRENCES ARE REMOVED!
+ * Turns the robot chasis a set number of degrees. Uses the flywheel as the front
+ * of the robot.
  * 
  * \param rotation
  * 		  The number of degrees the robot should turn, bound [0,360), positive
@@ -140,21 +147,32 @@ void driveTurn(float rotation, float maxVoltage=12000) {
 		// Wait a set ammount of time to ensure that dT remains fairly constant
 		pros::delay(15);
 		// Print out the error, integral, derivative, and power	
-		printf("Error: %f, Integral: %f, Derivative: %f, Power: %f\n",error,integral,derivative,power);
 	}
 	left_drive.brake();
 	right_drive.brake();
 }
 
-void flywheelBangBang(float velocity) {
-	while (true){
-		if((flywheel1.get_actual_velocity()+flywheel2.get_actual_velocity())<(2*velocity)) {
-			flywheel.move_voltage(flywheel1.get_voltage()+1000);
-		}
-		else if ((flywheel1.get_actual_velocity()+flywheel2.get_actual_velocity())>(2*velocity)){
-			flywheel.move_voltage(flywheel1.get_voltage()-1000);
-		}
-	}
+/**
+ * Turns the robot chasis a set number of degrees.
+ * Uses the flywheel as the front of the robot.
+ * Utilizes the motor encoders instead of the inertial sensor for more precision.
+ * 
+ * \param rotation
+ * The number of degrees the robot should turn.
+ * Positive to turn clockwise, negative for anti-clockwise.
+ * 
+ * \param velocity
+ * How fast to spin the motors. This should always be a positive number.
+ */
+void driveETurn(float rotation, float velocity) {
+	const float unitsPerDegree=6.67;
+	left_drive.tare_position();
+	right_drive.tare_position();
+	left_drive.move_relative(rotation*unitsPerDegree,velocity);
+	right_drive.move_relative(-rotation*unitsPerDegree,velocity);
+	while (abs(left_drive.get_positions()[0])<abs(rotation*unitsPerDegree) || abs(right_drive.get_positions()[0])<abs(rotation*unitsPerDegree));
+	left_drive.brake();
+	right_drive.brake();
 }
 
 /**
@@ -164,6 +182,7 @@ void flywheelBangBang(float velocity) {
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	printf(CREDITS);
 	left_front.set_brake_mode(E_MOTOR_BRAKE_HOLD);
 	right_front.set_brake_mode(E_MOTOR_BRAKE_HOLD);
 	left_rear.set_brake_mode(E_MOTOR_BRAKE_HOLD);
@@ -175,14 +194,11 @@ void initialize() {
 	flywheel1.set_brake_mode(E_MOTOR_BRAKE_COAST);
 	flywheel2.set_brake_mode(E_MOTOR_BRAKE_COAST);
 	
-	inertial.reset();
-	while (inertial.is_calibrating());
 	pros::delay(500);
-	inertial.tare();
 	pros::delay(500);
 
 	// Autonomous selection menu
-	while (true) {
+	while (false) {
 		master.print(0, 0, "Route %d", routeSelection);
 		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_LEFT)) {
 			routeSelection--;
@@ -227,21 +243,6 @@ void competition_initialize() {
  * \author aHalliday13
  */
 void leftFullWP() {
-	flywheel.move_velocity(560);
-	rollerIntake.move_relative(-600,100);
-	pros::delay(2000);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
-	pros::delay(1200);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
-	flywheel.brake();
-	driveTurn(-92,40);
-	driveIn(-43);
-	driveTurn(-27,40);
-	driveIn(-40);
 }
 
 /**
@@ -250,46 +251,33 @@ void leftFullWP() {
  * \author aHalliday13
  */
 void leftHalfDiscs() {
-	flywheel.move_velocity(580);
+	flywheel.move_velocity(600);
 	pros::delay(4000);
 	indexer.set_value(true);
-	pros::delay(1000);
-	flywheel.move_velocity(570);
+	pros::delay(500);
 	indexer.set_value(false);
-	pros::delay(2000);
+	pros::delay(5000);
 	indexer.set_value(true);
-	pros::delay(1000);
+	pros::delay(500);
 	indexer.set_value(false);
-	flywheel.move_velocity(490);
+	flywheel.move_velocity(540);
 
 	left_drive.move_relative(-150,50);
 	right_drive.move_relative(-150,50);
 	pros::delay(200);
 	rollerIntake.move_relative(-400,100);
-	pros::delay(2000);
+	pros::delay(1000);
 	left_drive.brake();
 	right_drive.brake();
 
 	left_drive.move_relative(250,50);
 	right_drive.move_relative(250,50);
 	pros::delay(700);
-	driveTurn(-117);
+	driveETurn(-110,50);
 	rollerIntake.move_velocity(200);
-	driveIn(-40);
-	driveTurn(100);
+	driveIn(-43);
+	driveETurn(90,50);
 	rollerIntake.brake();
-	pros::delay(1000);
-	indexer.set_value(true);
-	pros::delay(1000);
-	indexer.set_value(false);
-	pros::delay(1000);
-	indexer.set_value(true);
-	pros::delay(1000);
-	indexer.set_value(false);
-	pros::delay(1000);
-	indexer.set_value(true);
-	pros::delay(1000);
-	indexer.set_value(false);
 }
 
 /**
@@ -297,69 +285,97 @@ void leftHalfDiscs() {
  * \author aHalliday13
  */
 void rightHalfDiscs() {
-	flywheel.move_velocity(600);
-	pros::delay(5000);
+	flywheel.move_velocity(560);
+	driveIn(20);
+	pros::delay(3000);
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
-	pros::delay(1000);
+	pros::delay(3000);
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
-	left_drive.move_relative(-420,50);
-	right_drive.move_relative(420,50);
+	driveIn(-20);
+	left_drive.move_relative(450,50);
+	right_drive.move_relative(-450,50);
 	pros::delay(2000);
-	driveIn(15);
-	driveTurn(-90);
+	driveIn(18);
+	driveETurn(-80,70);
+	rollerIntake.move_relative(-800,200);
 	left_drive.move_velocity(-600);
 	right_drive.move_velocity(-600);
 	pros::delay(1000);
-	rollerIntake.move_relative(-400,100);
-	pros::delay(1000);
 	left_drive.brake();
 	right_drive.brake();
+	rollerIntake.brake();
 }
 
 /**
- * Shoots discs into high goal (hopefully), spins roller to red, and then 
- * triggers the expansion release.
+ * Super special secret skills routine that I'm not going to doccument for *reasons*
+ * Welcome to recursion hell
  * \author aHalliday13
  */
 void skillsAuton() {
-	left_drive.move_relative(-150,50);
-	right_drive.move_relative(-150,50);
-	pros::delay(200);
-	rollerIntake.move_relative(-400,200);
-	pros::delay(300);
-	left_drive.move_relative(1500,50);
-	right_drive.move_relative(1500,50);
-	pros::delay(2000);
+	flywheel.move_velocity(400);
+	pros::delay(500);
+	rollerIntake.move_velocity(-100);
+	pros::delay(500);
+	for (int i=0;i<3;i++) {
+		right_drive.move_relative(200,80);
+		left_drive.move_relative(200,80);
+		pros::delay(1000);
+		left_drive.brake();
+		right_drive.brake();
+		rollerIntake.brake();
+		driveETurn(85,40);
+		rollerIntake.move_velocity(-100);
+		indexer.set_value(true);
+		pros::delay(500);
+		indexer.set_value(false);
+		pros::delay(300);
+		indexer.set_value(true);
+		pros::delay(500);
+		indexer.set_value(false);
+		pros::delay(300);
+		indexer.set_value(true);
+		pros::delay(500);
+		indexer.set_value(false);
+		if (i!=2){
+			driveETurn(-85,40);
+			right_drive.move_relative(-250,40);
+			left_drive.move_relative(-250,40);
+			pros::delay(2000);
+		}
+	}
 	rollerIntake.move_velocity(200);
-	driveTurn(90);
-	left_drive.move_relative(-1500,50);
-	right_drive.move_relative(-1500,50);
-	pros::delay(2000);
-	left_drive.move_relative(1200,50);
-	right_drive.move_relative(1200,50);
-	pros::delay(2000);
-	left_drive.move_relative(-200,50);
-	right_drive.move_relative(200,50);
-	pros::delay(2000);
-	expansion1.set_value(true);
-	left_drive.move_relative(-100,50);
-	right_drive.move_relative(100,50);
-	pros::delay(2000);
-	expansion2.set_value(true);
-	driveIn(-20);
-	/*
-	driveIn(110,9500);
-	driveTurn(135);
-	left_drive.move_relative(-1200,50);
-	right_drive.move_relative(-1200,50);
-	pros::delay(2000);
-	left_drive.move_relative(1200,50);
-	right_drive.move_relative(1200,50);
-	pros::delay(2000);*/
+	driveETurn(60,40);
+	driveIn(-30,7000);
+	pros::delay(500);
+	driveIn(20);
+	driveETurn(-60,40);
+	pros::delay(700);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	pros::delay(300);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	pros::delay(300);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	rollerIntake.move(200);
+	driveIn(-40);
+	driveETurn(-90,40);
+	left_drive.move(-50);
+	right_drive.move(-50);
+	pros::delay(700);
+	driveIn(25);
+	driveETurn(90,50);
+	driveIn(-10);
+	pros::delay(700);
+	driveIn(7);
 }
 
 /**
@@ -374,7 +390,7 @@ void skillsAuton() {
  * from where it left off.
  */
 void autonomous() {
-	if (routeSelection==1){
+	/*if (routeSelection==1){
 		leftHalfDiscs();
 	}
 	else if (routeSelection==2){
@@ -385,10 +401,8 @@ void autonomous() {
 	}
 	else if (routeSelection==4){
 		skillsAuton();
-	}
-	else if (routeSelection==-1){
-		flywheelBangBang(390);
-	}
+	}*/
+	driveIn(50);
 }
 
 /**
@@ -407,61 +421,47 @@ void autonomous() {
 void opcontrol() {
 	while (true) {
 		// Print important stats to the controller screen
-		master.print(0,0,"DT:%.0f FT:%.0f FV:%.0f     ",((left_front.get_temperature()+right_front.get_temperature()+left_rear.get_temperature()+right_rear.get_temperature())/4),((flywheel1.get_temperature()+flywheel2.get_temperature())/2),round(flywheel1.get_target_velocity()/6));
+		master.print(0,0,"DT:%.0f FT:%.0f FV:%.0f     ",((left_front.get_temperature()+right_front.get_temperature()+left_rear.get_temperature()+right_rear.get_temperature())/4),((flywheel1.get_temperature()+flywheel2.get_temperature())/2),round(flywheel1.get_actual_velocity()));
 		
 		// Drivetrain control functions
-		left_drive = (CUBERTCTRL_LY*(invertDrivetrainTeleOp ? -1 : 1) + master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
-		right_drive = (CUBERTCTRL_LY*(invertDrivetrainTeleOp ? -1 : 1) - master.get_analog(E_CONTROLLER_ANALOG_LEFT_X));
+		left_drive.move((-CUBERTCTRL_LY + master.get_analog(E_CONTROLLER_ANALOG_LEFT_X)));
+		right_drive.move((-CUBERTCTRL_LY - master.get_analog(E_CONTROLLER_ANALOG_LEFT_X)));
+		if (left_drive.get_target_velocities()[0]==0) {
+			left_drive.brake();
+		}
+		if (right_drive.get_target_velocities()[0]==0) {
+			right_drive.brake();
+		}
 
-		// Invert the drivetrain if the driver requests it
-		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_A)){
-			invertDrivetrainTeleOp= !invertDrivetrainTeleOp;
+		// Set the velocity of the intake
+		if (master.get_digital(E_CONTROLLER_DIGITAL_A)){
+			rollerIntake.move_velocity(-100);
+		}
+		else {
+			rollerIntake.move(master.get_analog(E_CONTROLLER_ANALOG_RIGHT_Y));
 		}
 
 		// Toggle the flap if the driver presses Y
 		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_Y)){
 			flap.set_value(!flap.get_value());
-		}
-
-		// Set the intake/ roller velocity
-		rollerIntake = master.get_analog(E_CONTROLLER_ANALOG_RIGHT_Y);
+		}	
 
 		// Set flywheel velocity
 		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_L1)){
 			// %100
-			if (flywheel1.get_target_velocity()==600) {
-				flywheel.brake();
-			}
-			else {
-				flywheel.move_velocity(600);
-			}
+			flywheel.move_velocity(flywheel.get_target_velocities()[0]==600 ? 0 : 600);
 		}
 		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_L2)){
 			// %68
-			if (flywheel1.get_target_velocity()==410) {
-				flywheel.brake();
-			}
-			else {
-				flywheel.move_velocity(410);
-			}
+			flywheel.move_velocity(flywheel.get_target_velocities()[0]==410 ? 0 : 410);
 		}
 		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R1)){
 			// %65
-			if (flywheel1.get_target_velocity()==390) {
-				flywheel.brake();
-			}
-			else {
-				flywheel.move_velocity(390);
-			}
+			flywheel.move_velocity(flywheel.get_target_velocities()[0]==390 ? 0 : 390);
 		}
 		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R2)){
 			// %66
-			if (flywheel1.get_target_velocity()==400) {
-				flywheel.brake();
-			}
-			else {
-				flywheel.move_velocity(400);
-			}
+			flywheel.move_velocity(flywheel.get_target_velocities()[0]==400 ? 0 : 400);
 		}
 
 		// Fire the indexer

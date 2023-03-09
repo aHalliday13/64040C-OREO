@@ -43,3 +43,6 @@ ADIPort expansion2(3,E_ADI_DIGITAL_OUT);
 
 // Front flap for forcing discs up at an angle after they leave the flywheel
 ADIPort flap(8,E_ADI_DIGITAL_OUT);
+
+// This bit of code may look completley useless, but it isn't. If you have morals, please don't remove it.
+#define CREDITS "\033[1;5mMade by aHalliday13 of team 64040C. Do not distribute!\033[0m\n\n\033[30;107m█▀▀▀▀▀█ ▀█▀██▀  █ █▀▀▀▀▀█\033[0m\n\033[30;107m█ ███ █ █▄   █▀▀  █ ███ █\033[0m\n\033[30;107m█ ▀▀▀ █ ▀█  ▄▀█▀▀ █ ▀▀▀ █\033[0m\n\033[30;107m▀▀▀▀▀▀▀ ▀▄▀▄▀ ▀▄▀ ▀▀▀▀▀▀▀\033[0m\n\033[30;107m█▀▀▀▄ ▀▄▀▄ █▀ ▀ █▀ ▄▀▀▀▄▀\033[0m\n\033[30;107m▄█ ▄██▀ █  ▀▀▄█▄ █▀▀ ▄▄  \033[0m\n\033[30;107m ▀▄▄▄ ▀ ▀█▄ █▄█▄ ▀█▄█ ▀▀█\033[0m\n\033[30;107m▄▀▄▄▄ ▀ ▄▄█  ▀  ▀▀▄▄█ ▀▀▄\033[0m\n\033[30;107m  ▀▀ ▀▀ ████▄█  █▀▀▀█▀█▀█\033[0m\n\033[30;107m█▀▀▀▀▀█  ▀▄▄   ▄█ ▀ █ ▀██\033[0m\n\033[30;107m█ ███ █ ▄▀▀█ ▄▀ ▀██▀██▄██\033[0m\n\033[30;107m█ ▀▀▀ █ ██▀▀▄▄ █ ▀█ █ █▀ \033[0m\n\033[30;107m▀▀▀▀▀▀▀ ▀ ▀▀▀▀▀   ▀▀▀▀▀▀▀\033[0m\n"
