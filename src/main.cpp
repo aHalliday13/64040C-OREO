@@ -113,7 +113,7 @@ void driveETurn(float rotation, float velocity) {
 	right_drive.tare_position();
 	left_drive.move_relative(rotation*unitsPerDegree,velocity);
 	right_drive.move_relative(-rotation*unitsPerDegree,velocity);
-	while (abs(left_drive.get_positions()[0])<abs(rotation*unitsPerDegree) || abs(right_drive.get_positions()[0])<abs(rotation*unitsPerDegree));
+	while (abs(left_drive.get_positions()[0])<abs(rotation*unitsPerDegree)-5 || abs(right_drive.get_positions()[0])<abs(rotation*unitsPerDegree)-5);
 	left_drive.brake();
 	right_drive.brake();
 }
@@ -194,21 +194,12 @@ void leftFullWP() {
  * \author aHalliday13
  */
 void leftHalfDiscs() {
-	flywheel.move_velocity(600);
-	pros::delay(4000);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
-	pros::delay(5000);
-	indexer.set_value(true);
-	pros::delay(500);
-	indexer.set_value(false);
-	flywheel.move_velocity(540);
+	flywheel.move_velocity(550);
 
 	left_drive.move_relative(-150,50);
 	right_drive.move_relative(-150,50);
 	pros::delay(200);
-	rollerIntake.move_relative(-400,100);
+	rollerIntake.move_relative(-300,100);
 	pros::delay(1000);
 	left_drive.brake();
 	right_drive.brake();
@@ -216,11 +207,23 @@ void leftHalfDiscs() {
 	left_drive.move_relative(250,50);
 	right_drive.move_relative(250,50);
 	pros::delay(700);
-	driveETurn(-110,50);
+	driveETurn(-115,50);
 	rollerIntake.move_velocity(200);
-	driveIn(-43);
+	driveIn(-46,8000);
 	driveETurn(90,50);
 	rollerIntake.brake();
+	pros::delay(2000);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	pros::delay(3000);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
+	pros::delay(3000);
+	indexer.set_value(true);
+	pros::delay(500);
+	indexer.set_value(false);
 }
 
 /**
@@ -228,9 +231,9 @@ void leftHalfDiscs() {
  * \author aHalliday13
  */
 void rightHalfDiscs() {
-	flywheel.move_velocity(560);
+	flywheel.move_velocity(540);
 	driveIn(20);
-	pros::delay(3000);
+	pros::delay(4000);
 	indexer.set_value(true);
 	pros::delay(500);
 	indexer.set_value(false);
@@ -294,8 +297,8 @@ void skillsAuton() {
 	driveETurn(60,40);
 	driveIn(-30,7000);
 	pros::delay(500);
-	driveIn(20);
-	driveETurn(-60,40);
+	driveIn(22);
+	driveETurn(-63,40);
 	pros::delay(700);
 	indexer.set_value(true);
 	pros::delay(500);
@@ -309,16 +312,29 @@ void skillsAuton() {
 	pros::delay(500);
 	indexer.set_value(false);
 	rollerIntake.move(200);
-	driveIn(-40);
+	driveETurn(-89,40);
+	driveIn(-4);
+	driveETurn(90,40);
+	driveIn(-50);
+	left_drive.move_velocity(-100);
+	right_drive.move_velocity(-100);
+	pros::delay(500);
+	left_drive.brake();
+	right_drive.brake();
+	driveIn(30);
 	driveETurn(-90,40);
-	left_drive.move(-50);
-	right_drive.move(-50);
-	pros::delay(700);
-	driveIn(25);
-	driveETurn(90,50);
+	left_drive.move_velocity(-100);
+	right_drive.move_velocity(-100);
+	pros::delay(500);
+	left_drive.brake();
+	right_drive.brake();
+	driveIn(10);
+	driveETurn(90,40);
 	driveIn(-10);
-	pros::delay(700);
-	driveIn(7);
+	
+	driveETurn(-60,40);
+	expansion1.set_value(true);
+	expansion2.set_value(true);
 }
 
 /**
@@ -333,19 +349,7 @@ void skillsAuton() {
  * from where it left off.
  */
 void autonomous() {
-	/*if (routeSelection==1){
-		leftHalfDiscs();
-	}
-	else if (routeSelection==2){
-		rightHalfDiscs();
-	}
-	else if (routeSelection==3){
-		leftFullWP();
-	}
-	else if (routeSelection==4){
-		skillsAuton();
-	}*/
-	driveIn(50);
+	skillsAuton();
 }
 
 /**
@@ -364,7 +368,7 @@ void autonomous() {
 void opcontrol() {
 	while (true) {
 		// Print important stats to the controller screen
-		master.print(0,0,"DT:%.0f FT:%.0f FV:%.0f     ",((left_front.get_temperature()+right_front.get_temperature()+left_rear.get_temperature()+right_rear.get_temperature())/4),((flywheel1.get_temperature()+flywheel2.get_temperature())/2),round(flywheel1.get_actual_velocity()));
+		master.print(0,0,"DT:%.0f FT:%.0f FV:%.0f     ",((left_front.get_temperature()+right_front.get_temperature()+left_rear.get_temperature()+right_rear.get_temperature())/4),((flywheel1.get_temperature()+flywheel2.get_temperature())/2),round(flywheel1.get_target_velocity()));
 		
 		// Drivetrain control functions
 		left_drive.move((-CUBERTCTRL_LY + master.get_analog(E_CONTROLLER_ANALOG_LEFT_X)));
@@ -413,5 +417,7 @@ void opcontrol() {
 		// Trigger the expansion release
 		expansion1.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN)||master.get_digital(E_CONTROLLER_DIGITAL_LEFT));
 		expansion2.set_value(master.get_digital(E_CONTROLLER_DIGITAL_DOWN)||master.get_digital(E_CONTROLLER_DIGITAL_RIGHT));
+
+		blocker.set_value(master.get_digital(E_CONTROLLER_DIGITAL_UP));
 	}
 }
