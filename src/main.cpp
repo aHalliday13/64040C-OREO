@@ -349,7 +349,7 @@ void skillsAuton() {
  * from where it left off.
  */
 void autonomous() {
-	skillsAuton();
+	leftHalfDiscs();
 }
 
 /**
