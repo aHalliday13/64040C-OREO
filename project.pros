@@ -1,9 +1,32 @@
 {
     "py/object": "pros.conductor.project.Project",
     "py/state": {
-        "project_name": "DoubleSlash",
+        "project_name": "64040C_OREO",
         "target": "v5",
         "templates": {
+            "ARMS": {
+                "location": "/Users/hallidaya/Library/Application Support/PROS/templates/ARMS@3.1.0",
+                "metadata": {
+                    "origin": "local"
+                },
+                "name": "ARMS",
+                "py/object": "pros.conductor.templates.local_template.LocalTemplate",
+                "supported_kernels": "^3.8.0",
+                "system_files": [
+                    "include\\ARMS\\point.h",
+                    "include\\ARMS\\flags.h",
+                    "include\\ARMS\\api.h",
+                    "include\\ARMS\\config.h",
+                    "include\\ARMS\\selector.h",
+                    "include\\ARMS\\odom.h",
+                    "firmware\\ARMS.a",
+                    "include\\ARMS\\chassis.h",
+                    "include\\ARMS\\pid.h"
+                ],
+                "target": "v5",
+                "user_files": [],
+                "version": "3.1.0"
+            },
             "kernel": {
                 "location": "/Users/hallidaya/Library/Application Support/PROS/templates/kernel@3.8.0",
                 "metadata": {
