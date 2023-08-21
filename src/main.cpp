@@ -12,31 +12,33 @@ inline __attribute__((always_inline)) void rightAuton() {
 	flywheel.move_velocity(185);
 	arms::chassis::move(-17,arms::REVERSE);
 
-	pros::delay(1500);
-	indexer.move_relative(900,600);
+	pros::delay(2500);
+	//was n900
+	indexer.move_relative(400,600);
 
 	pros::delay(500);
 	rollerIntake.move_relative(5000,600);
 
 	pros::delay(1500);
-	indexer.move_relative(800,600);
+	//was800
+	indexer.move_relative(400,600);
 
 	pros::delay(500);
 
 	arms::chassis::turn(55,arms::RELATIVE);
 	arms::chassis::move(22);
 	arms::chassis::turn(-45,arms::RELATIVE);
-	arms::chassis::move(4);
-	rollerIntake.move_relative(-100,600);
+	arms::chassis::move(5,arms::THRU);
+	rollerIntake.move_relative(-150,600);
 }
 
 inline __attribute__((always_inline)) void leftAuton() {
 	int idleTime=0;
-	flywheel.move_voltage(12000);
+	flywheel.move_velocity(200);
 	arms::chassis::move(-6,arms::REVERSE);
 
 	pros::delay(2500);
-	while(flywheel.get_voltage()<12000) {
+	while(flywheel.get_actual_velocity()<200) {
 		idleTime++;
 		pros::delay(1);
 		if (idleTime>2000) {
@@ -47,7 +49,7 @@ inline __attribute__((always_inline)) void leftAuton() {
 
 	pros::delay(1000);
 	idleTime=0;
-	while(flywheel.get_voltage()<12000) {
+	while(flywheel.get_actual_velocity()<200) {
 		idleTime++;
 		pros::delay(1);
 		if (idleTime>2000) {
@@ -61,7 +63,7 @@ inline __attribute__((always_inline)) void leftAuton() {
 	indexer.move_relative(170,600);
 	pros::delay(500);
 	arms::chassis::move(9);
-	rollerIntake.move_relative(-100,600);	
+	rollerIntake.move_relative(-170,600);	
 }
 
 inline __attribute__((always_inline)) void giveUp() {
@@ -96,8 +98,8 @@ inline __attribute__((always_inline)) void giveUp() {
 void initialize() {
 	arms::init();
 	printf(CREDITS);
-	arms::chassis::leftMotors.get()->set_brake_modes(E_MOTOR_BRAKE_BRAKE);
-	arms::chassis::rightMotors.get()->set_brake_modes(E_MOTOR_BRAKE_BRAKE);
+	arms::chassis::leftMotors.get()->set_brake_modes(E_MOTOR_BRAKE_COAST);
+	arms::chassis::rightMotors.get()->set_brake_modes(E_MOTOR_BRAKE_COAST);
 	indexer.set_brake_mode(E_MOTOR_BRAKE_HOLD);
 }
 
@@ -170,7 +172,6 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	int flyvolt=0;
 	while (true) {
 		// Drivetrain control functions
 		arms::chassis::arcade(CUBERTCTRL_LY,EXPLOGCTRL_LX);
@@ -187,22 +188,60 @@ void opcontrol() {
 		rollerIntake.move(master.get_analog(E_CONTROLLER_ANALOG_RIGHT_Y));
 
 		// Set flywheel velocity
-		// Speeds Zach Wants (mV): 9900, 10800 (flaps)
-		master.print(0,0,"%-7d : %f",flywheel.get_voltage(),flywheel.get_actual_velocity());
+		// Speeds Zach Wants (mV): 9900 (170), 10800 (189) (flaps)
 		if(master.get_digital(E_CONTROLLER_DIGITAL_UP)){
-			flyvolt++;
+			flywheel.move_velocity(flywheel.get_actual_velocity()+1);
 			pros::delay(1);
 		}
 		else if(master.get_digital(E_CONTROLLER_DIGITAL_DOWN)){
-			flyvolt--;
+			flywheel.move_velocity(flywheel.get_actual_velocity()-1);
 			pros::delay(1);
 		}
-		flywheel.move_voltage(flyvolt);
+
+		// 170
+		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_L1)) {
+			if (flywheel.get_target_velocity()==170) {
+				flywheel.brake();
+			}
+			else {
+				flywheel.move_velocity(170);
+			}
+		}
+		//184
+		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_L2)) {
+			if (flywheel.get_target_velocity()==180) {
+				flywheel.brake();
+			}
+			else {
+				flywheel.move_velocity(180);
+			}
+		}
+		//reverse
+		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R2)) {
+			if (flywheel.get_target_velocity()==-200) {
+				flywheel.brake();
+			}
+			else {
+				flywheel.move_velocity(-200);
+			}
+		}
+		//stop
+		else if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_R2)) {
+			flywheel.brake();
+		}
 
 		// Set the flap
 		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_Y)){
 			flap.set_value(!flap.get_value());
+			if (flap.get_value()){
+				flywheel.move_velocity(170);
+			}
+			else {
+				flywheel.move_velocity(180);
+			}
 		}
+
+		master.print(0,0,"%d      ",flywheel.get_target_velocity());
 
 		// Deploy Expansion
 		expansion.set_value(master.get_digital(E_CONTROLLER_DIGITAL_RIGHT));
